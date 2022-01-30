@@ -1,5 +1,5 @@
-# SponsorBlock Browser VIP Helper
-A small script to add additional functionalities to SBB for cool people 😎
+# SponsorBlock Browser Cool Helper
+A small script to add additional functionalities to SBB for cool people 😎 (a.k.a VIPs)
 
 ## Features
 - Add voting (up, down, undo) to each segment

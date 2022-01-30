@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         SBB Cool Helper
-// @namespace    maxhyt.sbbVIPHelper
-// @version      1.0
+// @namespace    maxhyt.SBBCoolHelper
+// @version      1.0.1.0
 // @description  Add VIP features to SBB site
 // @license      AGPL-3.0-or-later
 // @copyright    2022. Thomas Nguyen
@@ -23,7 +23,9 @@
     width: 1.3em;
     height: 1.3em;
     cursor: pointer;
-    margin: 0.2em;
+    margin-top: 0.2em;
+    margin-left: 0.3em;
+    margin-right: 0.3em;
 }
 
 div.disabled {
@@ -44,7 +46,7 @@ div.disabled {
         UNDO: 20
     };
 
-    const CATEGORIES = ['sponsor', 'selfpromo', 'interaction', 'intro', 'outro', 'preview', 'music_offtopic', 'filler'];
+    const CATEGORIES = ['sponsor', 'selfpromo', 'interaction', 'intro', 'outro', 'preview', 'music_offtopic', 'filler', 'poi_highlight', 'exclusive_access'];
     
     // Global variables
     let IsLoaded = false;
@@ -53,8 +55,8 @@ div.disabled {
 
     // Button to set User ID
     const userIDSetButton = document.createElement('button');
-    userIDSetButton.classList.add('btn', 'btn-secondary', 'me-2');
-    userIDSetButton.innerHTML = "Set UserID";
+    userIDSetButton.classList.add('btn', 'me-2');
+    userIDSetButton.textContent = "Set UserID";
     userIDSetButton.addEventListener('click', () => {
         const userID = prompt("Enter your private user ID:");
 
@@ -70,7 +72,13 @@ div.disabled {
     });
     document.body.querySelector('nav > div').appendChild(userIDSetButton);
     
-    if (VerifyUserID(GM_getValue('userID'))) Main();
+    if (VerifyUserID(GM_getValue('userID'))) {
+        userIDSetButton.classList.add('btn-secondary');
+        Main();
+    }
+    else {
+        userIDSetButton.classList.add('btn-warning');
+    }
 
     function Main() {
         IsLoaded = true;
@@ -111,11 +119,9 @@ div.disabled {
         upvoteButton.addEventListener('click', () => {
             if (!upvoteButton.classList.contains('disabled') && confirm('Confirm upvoting?')) {
                 const segmentId = row.querySelector('textarea[name="UUID"]')?.value;
-                upvoteButton.classList.add('disabled');
+                DisableVoteButtons();
 
-                SendVoteSegment(segmentId, VOTE_SEG_OPTIONS.UP, () => {
-                    upvoteButton.classList.remove('disabled');
-                });
+                SendVoteSegment(segmentId, VOTE_SEG_OPTIONS.UP, EnableVoteButtons);
             }
         });
         votingContainer.appendChild(upvoteButton);
@@ -126,7 +132,7 @@ div.disabled {
         downvoteButton.classList.add('voteButton');
 
         if (row.children[VoteHeaderIndex].textContent.includes('👑')) {
-            if (row.querySelector('textarea[name="UserID"]')?.value === GM_getValue('userID')) {
+            if (row.querySelector('textarea[name="UserID"]')?.value !== GM_getValue('userID')) {
                 downvoteButton.setAttribute('title', 'This user is a VIP, be sure to discuss first before downvoting this segment');
             }
 
@@ -140,11 +146,9 @@ div.disabled {
         downvoteButton.addEventListener('click', () => {
             if (!downvoteButton.classList.contains('disabled') && confirm('Confirm downvoting?')) {
                 const segmentId = row.querySelector('textarea[name="UUID"]')?.value;
-                downvoteButton.classList.add('disabled');
+                DisableVoteButtons();
 
-                SendVoteSegment(segmentId, VOTE_SEG_OPTIONS.DOWN, () => {
-                    downvoteButton.classList.remove('disabled');
-                });
+                SendVoteSegment(segmentId, VOTE_SEG_OPTIONS.DOWN, EnableVoteButtons);
             }
         });
         votingContainer.appendChild(downvoteButton);
@@ -157,17 +161,27 @@ div.disabled {
         undovoteButton.addEventListener('click', () => {
             if (!undovoteButton.classList.contains('disabled') && confirm('Confirm undo vote?')) {
                 const segmentId = row.querySelector('textarea[name="UUID"]')?.value;
-                undovoteButton.classList.add('disabled');
+                DisableVoteButtons();
 
-                SendVoteSegment(segmentId, VOTE_SEG_OPTIONS.UNDO, () => {
-                    undovoteButton.classList.remove('disabled');
-                });
+                SendVoteSegment(segmentId, VOTE_SEG_OPTIONS.UNDO, EnableVoteButtons);
             }
         });
         votingContainer.appendChild(undovoteButton);
 
-        row.children[VoteHeaderIndex].style.minWidth = '6.1em'; // Make room for voting buttons
+        row.children[VoteHeaderIndex].style.minWidth = '6.7em'; // Make room for voting buttons
         row.children[VoteHeaderIndex].appendChild(votingContainer);
+        
+        function DisableVoteButtons() {
+            upvoteButton.classList.add('disabled');
+            downvoteButton.classList.add('disabled');
+            undovoteButton.classList.add('disabled');
+        }
+        
+        function EnableVoteButtons() {
+            upvoteButton.classList.remove('disabled');
+            downvoteButton.classList.remove('disabled');
+            undovoteButton.classList.remove('disabled');
+        }
     }
 
     /**
@@ -178,7 +192,7 @@ div.disabled {
         const categoryChangeButton = document.createElement('button');
         categoryChangeButton.classList.add('btn', 'btn-secondary', 'btn-sm', 'mt-1');
         categoryChangeButton.setAttribute('title', "Change this segment's category");
-        categoryChangeButton.innerHTML = '✏';
+        categoryChangeButton.textContent = '✏';
         categoryChangeButton.addEventListener('click', () => {
             categoryChangeButton.classList.add('disabled');
 
@@ -211,26 +225,26 @@ div.disabled {
         modal.classList.add('modal', 'd-block');
 
         modal.innerHTML = `
-        <div class="modal-dialog">
-            <div class="modal-content">
+        <div class="modal-dialog"><div class="modal-content">
             <div class="modal-header">
                 <h5 class="modal-title">Change category</h5>
                 <button type="button" action="close" class="btn-close" title="Close"></button>
             </div>
             <div class="modal-body">
-            Select a new category:
+                <label for="modal_select_category">Select a new category:</label>
             </div>
             <div class="modal-footer">
                 <button type="button" action="close" class="btn btn-secondary">Close</button>
                 <button type="button" action="save" class="btn btn-primary">Save changes</button>
             </div>
-            </div>
-        </div>
+        </div></div>
         `;
 
         // Add categories to modal
         const modalBody = modal.querySelector('.modal-body');
-        const categorySelectElm = document.createElement('select');
+        const categorySelect = document.createElement('select');
+        categorySelect.id = 'modal_select_category';
+        categorySelect.classList.add('form-select', 'mt-2');
 
         CATEGORIES.forEach(c => {
             const option = document.createElement('option');
@@ -242,10 +256,10 @@ div.disabled {
                 option.disabled = true;
             }
 
-            categorySelectElm.appendChild(option);
+            categorySelect.appendChild(option);
         });
 
-        modalBody.appendChild(categorySelectElm);
+        modalBody.appendChild(categorySelect);
 
         // Assign functionality to close buttons
         modal.querySelectorAll('button[action="close"]').forEach(btn => {
@@ -253,8 +267,8 @@ div.disabled {
         });
 
         modal.querySelector('button[action="save"]').addEventListener('click', () => {
-            if (confirm(`Confirm changing category from "${category}" to "${categorySelectElm.value}"?`)) {
-                SendCategoryUpdate(segmentId, categorySelectElm.value, closeModal);
+            if (confirm(`Confirm changing category from "${category}" to "${categorySelect.value}"?`)) {
+                SendCategoryUpdate(segmentId, categorySelect.value, closeModal);
             }
         });
         
