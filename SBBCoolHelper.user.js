@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         SBB Cool Helper
 // @namespace    maxhyt.SBBCoolHelper
-// @version      1.0.1.0
+// @version      1.1.0.0
 // @description  Add VIP features to SBB site
 // @license      AGPL-3.0-or-later
 // @copyright    2022. Thomas Nguyen
@@ -50,7 +50,7 @@ div.disabled {
     const ACTION_TYPES = ['skip', 'mute', 'full'];
 
     // Global variables
-    let IsLoaded = false;
+    let IsStarted = false;
     let VoteHeaderIndex = -1;
     let CategoryHeaderIndex = -1;
 
@@ -67,7 +67,7 @@ div.disabled {
             userIDSetButton.classList.remove('btn-warning');
             userIDSetButton.classList.add('btn-secondary');
 
-            if (!IsLoaded) Main();
+            if (!IsStarted) Main();
         }
         else if (userID) {
             alert("Invalid user ID! Please try again.");
@@ -84,7 +84,7 @@ div.disabled {
     }
 
     function Main() {
-        IsLoaded = true;
+        IsStarted = true;
 
         const segmentsTable = document.body.querySelector('table');
         const tableHeaders = [...segmentsTable.querySelectorAll('th')];
@@ -105,6 +105,26 @@ div.disabled {
             AddVotingButtonsToRow(row);
             AddCategoryChangeButtonToRow(row);
         });
+
+        // Add category lock button
+        let videoID = '';
+        const youtubeURL = document.body.querySelector('li.list-group-item > a[href^="https://www.youtube.com"], li.list-group-item > a[href^="https://youtu.be"]')?.href;
+        if (youtubeURL.includes('youtube.com')) {
+            videoID = new URL(youtubeURL).searchParams.get('v');
+        }
+        else if (youtubeURL.includes('youtu.be')) {
+            videoID = new URL(youtubeURL).pathname.substring(1);
+        }
+        
+        if (videoID) {
+            const categoryLockButton = document.createElement('button');
+            categoryLockButton.classList.add('btn', 'btn-warning', 'me-2');
+            categoryLockButton.textContent = '🔒';
+            
+            categoryLockButton.addEventListener('click', () => ShowLockCategoriesModal(videoID));
+            
+            document.body.querySelector('nav > div').insertBefore(categoryLockButton, document.body.querySelector('#darkmode'));
+        }
     }
 
     /**
@@ -221,7 +241,7 @@ div.disabled {
         // Create a modal
         const modal = new Modal;
         modal.Title = 'Change category';
-        
+
         // Add categories to modal
         const categorySelect = document.createElement('select');
         categorySelect.id = 'modal_select_category';
@@ -242,10 +262,10 @@ div.disabled {
 
         modal.Body.innerHTML = '<label for="modal_select_category">Select a new category:</label>';
         modal.Body.appendChild(categorySelect);
-        
+
         // Assign close function to modal
         modal.OnClosed = onClosed;
-        
+
         // Assign save function to modal
         modal.OnSave = () => {
             if (confirm(`Confirm changing category from "${category}" to "${categorySelect.value}"?`)) {
@@ -266,55 +286,77 @@ div.disabled {
 
         // Add categories to modal
         const categoriesContainer = document.createElement('div');
-        CATEGORIES.forEach(cat => {
+        categoriesContainer.classList.add('row');
+        const categoriesContainerLeftCol = document.createElement('div');
+        categoriesContainerLeftCol.classList.add('col-12', 'col-md-6');
+        const categoriesContainerRightCol = document.createElement('div');
+        categoriesContainerRightCol.classList.add('col-12', 'col-md-6');
+        
+        categoriesContainer.appendChild(categoriesContainerLeftCol);
+        categoriesContainer.appendChild(categoriesContainerRightCol);
+        
+        CATEGORIES.forEach((cat, i) => {
             const box = document.createElement('div');
             box.classList.add('form-check');
-            
+
             const label = document.createElement('label');
             label.classList.add('form-check-label');
             label.setAttribute('for', `modal_checkbox_category_${cat}`);
             label.textContent = cat;
-            
+
             const checkbox = document.createElement('input');
             checkbox.classList.add('form-check-input');
             checkbox.type = 'checkbox';
             checkbox.id = `modal_checkbox_category_${cat}`;
-            
+
             box.appendChild(checkbox);
             box.appendChild(label);
-            categoriesContainer.appendChild(box);
+            
+            if (i < CATEGORIES.length / 2) {
+                categoriesContainerLeftCol.appendChild(box);
+            }
+            else {
+                categoriesContainerRightCol.appendChild(box);
+            }
         });
-        
+
         modal.Body.innerHTML = '<h5>Choose categories to lock:</h5>';
         modal.Body.appendChild(categoriesContainer);
-        
+
         // Add action types to modal
         const actionTypesContainer = document.createElement('div');
         ACTION_TYPES.forEach(type => {
             const box = document.createElement('div');
             box.classList.add('form-check');
-            
+
             const label = document.createElement('label');
             label.classList.add('form-check-label');
             label.setAttribute('for', `modal_checkbox_type_${type}`);
             label.textContent = type;
-            
+
             const checkbox = document.createElement('input');
             checkbox.classList.add('form-check-input');
             checkbox.type = 'checkbox';
             checkbox.id = `modal_checkbox_type_${type}`;
-            
+            checkbox.checked = true;
+
             box.appendChild(checkbox);
             box.appendChild(label);
             actionTypesContainer.appendChild(box);
         });
-        
+
         modal.Body.innerHTML += '<h5>Choose action types to lock:</h5>';
         modal.Body.appendChild(actionTypesContainer);
-        
+
+        // Add reason to modal
+        const reasonTextarea = document.createElement('textarea');
+        reasonTextarea.style.width = '100%';
+        modal.Body.innerHTML += '<h5>Reason:</h5>';
+        modal.Body.appendChild(reasonTextarea);
+
         // Assign close function to modal
         modal.OnClosed = onClosed;
-        
+
         // Assign save function to modal
         modal.OnSave = () => {
             if (confirm('Confirm locking categories?')) {
@@ -322,7 +364,7 @@ div.disabled {
                     .map(c => c.id.replace('modal_checkbox_category_', ''));
                 const actionTypes = [...actionTypesContainer.querySelectorAll('input[type="checkbox"]:checked')]
                     .map(t => t.id.replace('modal_checkbox_type_', ''));
-                
+
                 SendLockCategories(videoID, categories, actionTypes, modal.CloseModal);
             }
         };
@@ -331,9 +373,9 @@ div.disabled {
     /**
      * I'm crazy am I?
      */
-    class Modal {        
-        /** @type {HTMLElement} */
-        _backdrop;
+    class Modal {
+        _bootstrapModal;
+
         /** @type {HTMLElement} */
         _modal;
         /** @type {HTMLElement} */
@@ -342,31 +384,26 @@ div.disabled {
         _title;
         /** @type {HTMLElement} */
         _saveButton;
-        
+
         /** @type {Function|undefined} */
         _onSave;
         /** @type {Function|undefined} */
         _onClosed;
 
         constructor() {
-            // Add backdrop
-            this._backdrop = document.createElement('div');
-            this._backdrop.classList.add('modal-backdrop', 'show');
-            document.body.appendChild(this._backdrop);
-
             // Create the modal
             this._modal = document.createElement('div');
-            this._modal.classList.add('modal', 'd-block');
+            this._modal.classList.add('modal', 'fade');
 
             this._modal.innerHTML = `
             <div class="modal-dialog"><div class="modal-content">
                 <div class="modal-header">
                     <h5 class="modal-title"></h5>
-                    <button type="button" action="close" class="btn-close" title="Close"></button>
+                    <button type="button" data-bs-dismiss="modal" class="btn-close" title="Close"></button>
                 </div>
                 <div class="modal-body"></div>
                 <div class="modal-footer">
-                    <button type="button" action="close" class="btn btn-secondary">Close</button>
+                    <button type="button" data-bs-dismiss="modal" class="btn btn-secondary">Close</button>
                     <button type="button" action="save" class="btn btn-primary">Save changes</button>
                 </div>
             </div></div>
@@ -375,30 +412,26 @@ div.disabled {
             this._title = this._modal.querySelector('.modal-title');
             this._modalBody = this._modal.querySelector('.modal-body');
 
-            // Assign functionality to close buttons
-            this._modal.querySelectorAll('button[action="close"]').forEach(btn => {
-                btn.addEventListener('click', () => { this.CloseModal(); });
-            });
-
             // Assign functionality to save button
             this._saveButton = this._modal.querySelector('button[action="save"]');
-            this._saveButton.addEventListener('click', () => { this._onSave(); });
-
-            // Close modal if backdrop is clicked
-            this._modal.addEventListener('click', (event) => {
-                event.stopPropagation();
-                if (event.target === event.currentTarget) this.CloseModal();
-            });
+            this._saveButton.addEventListener('click', () => { if (this._onSave) this._onSave(); });
 
             document.body.appendChild(this._modal);
+
+            this._bootstrapModal = new bootstrap.Modal(this._modal);
+            this._bootstrapModal.show();
+
+            this._modal.addEventListener('hide.bs.modal', () => {
+                if (this._onClosed) this._onClosed();
+            });
+
+            this._modal.addEventListener('hidden.bs.modal', this._modal.remove);
         }
-        
+
         CloseModal() {
-            this._modal.remove();
-            this._backdrop.remove();
-            if (this._onClosed) this._onClosed();
+            this._bootstrapModal.hide();
         }
-        
+
         /**
          * @param {string} title
          */
@@ -412,14 +445,14 @@ div.disabled {
         set OnSave(onSave) {
             this._onSave = onSave;
         }
-        
+
         /**
          * @param {Function} onClosed
          */
         set OnClosed(onClosed) {
             this._onClosed = onClosed;
         }
-        
+
         get Body() { return this._modalBody; }
     }
 

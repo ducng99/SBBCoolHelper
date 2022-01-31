@@ -4,7 +4,7 @@ A small script to add additional functionalities to SBB for cool people 😎 (a.
 ## Features
 - Add voting (up, down, undo) to each segment
 - Add category change to each segment
-- (soon™) Lock categories
+- Lock categories
 - *Please suggest*
 
 ## Install
