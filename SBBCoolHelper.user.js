@@ -47,7 +47,8 @@ div.disabled {
     };
 
     const CATEGORIES = ['sponsor', 'selfpromo', 'interaction', 'intro', 'outro', 'preview', 'music_offtopic', 'filler', 'poi_highlight', 'exclusive_access'];
-    
+    const ACTION_TYPES = ['skip', 'mute', 'full'];
+
     // Global variables
     let IsLoaded = false;
     let VoteHeaderIndex = -1;
@@ -63,7 +64,9 @@ div.disabled {
         if (VerifyUserID(userID)) {
             GM_setValue('userID', userID);
             alert('Saved!');
-            
+            userIDSetButton.classList.remove('btn-warning');
+            userIDSetButton.classList.add('btn-secondary');
+
             if (!IsLoaded) Main();
         }
         else if (userID) {
@@ -71,7 +74,7 @@ div.disabled {
         }
     });
     document.body.querySelector('nav > div').appendChild(userIDSetButton);
-    
+
     if (VerifyUserID(GM_getValue('userID'))) {
         userIDSetButton.classList.add('btn-secondary');
         Main();
@@ -82,7 +85,7 @@ div.disabled {
 
     function Main() {
         IsLoaded = true;
-        
+
         const segmentsTable = document.body.querySelector('table');
         const tableHeaders = [...segmentsTable.querySelectorAll('th')];
         const tableRows = [...segmentsTable.querySelectorAll('tbody tr')];
@@ -138,7 +141,7 @@ div.disabled {
 
             downvoteButton.style.color = '#ffc83d';
         }
-        
+
         if (!downvoteButton.hasAttribute('title')) {
             downvoteButton.setAttribute('title', 'Downvote this segment');
         }
@@ -170,13 +173,13 @@ div.disabled {
 
         row.children[VoteHeaderIndex].style.minWidth = '6.7em'; // Make room for voting buttons
         row.children[VoteHeaderIndex].appendChild(votingContainer);
-        
+
         function DisableVoteButtons() {
             upvoteButton.classList.add('disabled');
             downvoteButton.classList.add('disabled');
             undovoteButton.classList.add('disabled');
         }
-        
+
         function EnableVoteButtons() {
             upvoteButton.classList.remove('disabled');
             downvoteButton.classList.remove('disabled');
@@ -215,33 +218,11 @@ div.disabled {
      * @param {Function|undefined} onClosed function to call when the modal is closed
      */
     function ShowCategoryChangeModal(segmentId, category, onClosed) {
-        // Add backdrop
-        const backdrop = document.createElement('div');
-        backdrop.classList.add('modal-backdrop', 'show');
-        document.body.appendChild(backdrop);
-
-        // Create the modal
-        const modal = document.createElement('div');
-        modal.classList.add('modal', 'd-block');
-
-        modal.innerHTML = `
-        <div class="modal-dialog"><div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">Change category</h5>
-                <button type="button" action="close" class="btn-close" title="Close"></button>
-            </div>
-            <div class="modal-body">
-                <label for="modal_select_category">Select a new category:</label>
-            </div>
-            <div class="modal-footer">
-                <button type="button" action="close" class="btn btn-secondary">Close</button>
-                <button type="button" action="save" class="btn btn-primary">Save changes</button>
-            </div>
-        </div></div>
-        `;
-
+        // Create a modal
+        const modal = new Modal;
+        modal.Title = 'Change category';
+        
         // Add categories to modal
-        const modalBody = modal.querySelector('.modal-body');
         const categorySelect = document.createElement('select');
         categorySelect.id = 'modal_select_category';
         categorySelect.classList.add('form-select', 'mt-2');
@@ -259,32 +240,187 @@ div.disabled {
             categorySelect.appendChild(option);
         });
 
-        modalBody.appendChild(categorySelect);
-
-        // Assign functionality to close buttons
-        modal.querySelectorAll('button[action="close"]').forEach(btn => {
-            btn.addEventListener('click', closeModal);
-        });
-
-        modal.querySelector('button[action="save"]').addEventListener('click', () => {
+        modal.Body.innerHTML = '<label for="modal_select_category">Select a new category:</label>';
+        modal.Body.appendChild(categorySelect);
+        
+        // Assign close function to modal
+        modal.OnClosed = onClosed;
+        
+        // Assign save function to modal
+        modal.OnSave = () => {
             if (confirm(`Confirm changing category from "${category}" to "${categorySelect.value}"?`)) {
-                SendCategoryUpdate(segmentId, categorySelect.value, closeModal);
+                SendCategoryUpdate(segmentId, categorySelect.value, modal.CloseModal);
             }
+        };
+    }
+
+    /**
+     * Show a modal to lock categories of a video
+     * @param {string} videoID 
+     * @param {Function|undefined} onClosed function to call when the modal is closed
+     */
+    function ShowLockCategoriesModal(videoID, onClosed) {
+        // Create a modal
+        const modal = new Modal;
+        modal.Title = 'Lock categories';
+
+        // Add categories to modal
+        const categoriesContainer = document.createElement('div');
+        CATEGORIES.forEach(cat => {
+            const box = document.createElement('div');
+            box.classList.add('form-check');
+            
+            const label = document.createElement('label');
+            label.classList.add('form-check-label');
+            label.setAttribute('for', `modal_checkbox_category_${cat}`);
+            label.textContent = cat;
+            
+            const checkbox = document.createElement('input');
+            checkbox.classList.add('form-check-input');
+            checkbox.type = 'checkbox';
+            checkbox.id = `modal_checkbox_category_${cat}`;
+            
+            box.appendChild(checkbox);
+            box.appendChild(label);
+            categoriesContainer.appendChild(box);
         });
         
-        // Close modal if backdrop is clicked
-        modal.addEventListener('click', (event) => {
-            event.stopPropagation();
-            if (event.target === event.currentTarget) closeModal();
+        modal.Body.innerHTML = '<h5>Choose categories to lock:</h5>';
+        modal.Body.appendChild(categoriesContainer);
+        
+        // Add action types to modal
+        const actionTypesContainer = document.createElement('div');
+        ACTION_TYPES.forEach(type => {
+            const box = document.createElement('div');
+            box.classList.add('form-check');
+            
+            const label = document.createElement('label');
+            label.classList.add('form-check-label');
+            label.setAttribute('for', `modal_checkbox_type_${type}`);
+            label.textContent = type;
+            
+            const checkbox = document.createElement('input');
+            checkbox.classList.add('form-check-input');
+            checkbox.type = 'checkbox';
+            checkbox.id = `modal_checkbox_type_${type}`;
+            
+            box.appendChild(checkbox);
+            box.appendChild(label);
+            actionTypesContainer.appendChild(box);
         });
+        
+        modal.Body.innerHTML += '<h5>Choose action types to lock:</h5>';
+        modal.Body.appendChild(actionTypesContainer);
+        
+        // Assign close function to modal
+        modal.OnClosed = onClosed;
+        
+        // Assign save function to modal
+        modal.OnSave = () => {
+            if (confirm('Confirm locking categories?')) {
+                const categories = [...categoriesContainer.querySelectorAll('input[type="checkbox"]:checked')]
+                    .map(c => c.id.replace('modal_checkbox_category_', ''));
+                const actionTypes = [...actionTypesContainer.querySelectorAll('input[type="checkbox"]:checked')]
+                    .map(t => t.id.replace('modal_checkbox_type_', ''));
+                
+                SendLockCategories(videoID, categories, actionTypes, modal.CloseModal);
+            }
+        };
+    }
 
-        function closeModal() {
-            modal.remove();
-            backdrop.remove();
-            if (onClosed) onClosed();
+    /**
+     * I'm crazy am I?
+     */
+    class Modal {        
+        /** @type {HTMLElement} */
+        _backdrop;
+        /** @type {HTMLElement} */
+        _modal;
+        /** @type {HTMLElement} */
+        _modalBody;
+        /** @type {HTMLElement} */
+        _title;
+        /** @type {HTMLElement} */
+        _saveButton;
+        
+        /** @type {Function|undefined} */
+        _onSave;
+        /** @type {Function|undefined} */
+        _onClosed;
+
+        constructor() {
+            // Add backdrop
+            this._backdrop = document.createElement('div');
+            this._backdrop.classList.add('modal-backdrop', 'show');
+            document.body.appendChild(this._backdrop);
+
+            // Create the modal
+            this._modal = document.createElement('div');
+            this._modal.classList.add('modal', 'd-block');
+
+            this._modal.innerHTML = `
+            <div class="modal-dialog"><div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title"></h5>
+                    <button type="button" action="close" class="btn-close" title="Close"></button>
+                </div>
+                <div class="modal-body"></div>
+                <div class="modal-footer">
+                    <button type="button" action="close" class="btn btn-secondary">Close</button>
+                    <button type="button" action="save" class="btn btn-primary">Save changes</button>
+                </div>
+            </div></div>
+            `;
+
+            this._title = this._modal.querySelector('.modal-title');
+            this._modalBody = this._modal.querySelector('.modal-body');
+
+            // Assign functionality to close buttons
+            this._modal.querySelectorAll('button[action="close"]').forEach(btn => {
+                btn.addEventListener('click', () => { this.CloseModal(); });
+            });
+
+            // Assign functionality to save button
+            this._saveButton = this._modal.querySelector('button[action="save"]');
+            this._saveButton.addEventListener('click', () => { this._onSave(); });
+
+            // Close modal if backdrop is clicked
+            this._modal.addEventListener('click', (event) => {
+                event.stopPropagation();
+                if (event.target === event.currentTarget) this.CloseModal();
+            });
+
+            document.body.appendChild(this._modal);
+        }
+        
+        CloseModal() {
+            this._modal.remove();
+            this._backdrop.remove();
+            if (this._onClosed) this._onClosed();
+        }
+        
+        /**
+         * @param {string} title
+         */
+        set Title(title) {
+            this._title.textContent = title;
         }
 
-        document.body.appendChild(modal);
+        /**
+         * @param {Function} onSave
+         */
+        set OnSave(onSave) {
+            this._onSave = onSave;
+        }
+        
+        /**
+         * @param {Function} onClosed
+         */
+        set OnClosed(onClosed) {
+            this._onClosed = onClosed;
+        }
+        
+        get Body() { return this._modalBody; }
     }
 
     /**
@@ -327,8 +463,11 @@ div.disabled {
                                 'UUID: ' + uuid + '\n' +
                                 'Type: ' + voteID);
                             break;
-                        default:
+                        case 200:
                             alert('Voted!');
+                            break;
+                        default:
+                            alert('Failed to send the request, something might be wrong with the server.');
                             break;
                     }
 
@@ -382,8 +521,72 @@ div.disabled {
                                 'UUID: ' + uuid + '\n' +
                                 'Category: ' + category);
                             break;
-                        default:
+                        case 200:
                             alert('Updated!');
+                            break;
+                        default:
+                            alert('Failed to send the request, something might be wrong with the server.');
+                            break;
+                    }
+
+                    if (onFinish) onFinish();
+                },
+                onerror: function () {
+                    alert('Failed to send the request, something might be wrong with the server or your internet is 💩.');
+
+                    if (onFinish) onFinish();
+                }
+            });
+        }
+    }
+
+    /**
+     * Send request to lock categories for a video
+     * @param {string} videoID 
+     * @param {string[]} categories an array of categories being locked
+     * @param {string} reason why these categories are locked
+     * @param {Function|undefined} onFinish function to call when the request is finished (both success or fail)
+     */
+    function SendLockCategories(videoID, categories, reason, onFinish) {
+        const userID = GM_getValue('userID');
+        const invalidCategories = categories.filter(c => CATEGORIES.indexOf(c) === -1);
+
+        if (!VerifyUserID(userID)) {
+            alert(`Invalid user ID: "${userID}"`);
+
+            if (onFinish) onFinish();
+        }
+        else if (invalidCategories.length > 0) {
+            alert('Invalid categories: ' + invalidCategories.join(', '));
+
+            if (onFinish) onFinish();
+        }
+        else if (!reason) {
+            alert('A reason needs to be provided');
+
+            if (onFinish) onFinish();
+        }
+        else {
+            GM_xmlhttpRequest({
+                method: 'POST',
+                url: 'https://sponsor.ajay.app/api/lockCategories',
+                data: JSON.stringify({ videoID, userID, categories, reason }),
+                onload: function (response) {
+                    switch (response.status) {
+                        case 400:
+                            alert('Failed to lock categories. Please check these info and your User ID\n\n' +
+                                'Video ID: ' + videoID + '\n' +
+                                'Categories: ' + categories.join(', ') + '\n' +
+                                'Reason: ' + reason);
+                            break;
+                        case 403:
+                            alert('Lock is rejected. You are not a VIP\n\n' + response.response.message);
+                            break;
+                        case 200:
+                            alert('Locked!');
+                            break;
+                        default:
+                            alert('Failed to send the request, something might be wrong with the server.');
                             break;
                     }
 
