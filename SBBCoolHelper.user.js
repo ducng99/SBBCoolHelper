@@ -268,7 +268,7 @@ div.disabled {
         modal.Title = 'Lock/Unlock categories for ' + videoID;
 
         // Add categories to modal
-        modal.Body.appendFromString('<h5>Choose categories to lock:</h5>');
+        modal.Body.appendFromString('<h5>Choose categories to (un)lock:</h5>');
 
         const selectAllCategoriesButton = modal.Body.appendFromString('<button class="btn btn-secondary btn-sm my-1">(Un)Select all</button>');
         selectAllCategoriesButton.addEventListener('click', () => {
@@ -308,7 +308,7 @@ div.disabled {
         });
 
         // Add action types to modal
-        modal.Body.appendFromString('<h5 class="mt-3">Choose action types to lock:</h5>');
+        modal.Body.appendFromString('<h5 class="mt-3">Choose action types to (un)lock:</h5>');
         
         const actionTypesContainer = modal.Body.appendFromString('<div id="modal_action_types_container"></div>');
         ACTION_TYPES.forEach(type => {
@@ -331,8 +331,11 @@ div.disabled {
         modal.AddButton('🔓 Unlock', () => {
             const categories = [...modal.Body.querySelectorAll('#modal_categories_container input[type="checkbox"]:checked')].map(c => c.value);
             const actionTypes = [...modal.Body.querySelectorAll('#modal_action_types_container input[type="checkbox"]:checked')].map(t => t.value);
-
-            if (confirm('Confirm unlocking these categories?\n\n' + categories.join(', '))) {
+            
+            if (categories.length === 0 || actionTypes.length === 0) {
+                alert('Please select at least one category and action type to unlock.');
+            }
+            else if (confirm('Confirm unlocking these categories?\n\n' + categories.join(', '))) {
                 SendUnlockCategories(videoID, categories, actionTypes, modal.CloseModal.bind(modal));
             }
         });
@@ -343,8 +346,11 @@ div.disabled {
             const categories = [...modal.Body.querySelectorAll('#modal_categories_container input[type="checkbox"]:checked')].map(c => c.value);
             const actionTypes = [...modal.Body.querySelectorAll('#modal_action_types_container input[type="checkbox"]:checked')].map(t => t.value);
             const reason = reasonTextarea.value;
-
-            if (confirm('Confirm locking these categories?\n\n' + categories.join(', '))) {
+            
+            if (categories.length === 0 || actionTypes.length === 0) {
+                alert('Please select at least one category and action type to lock.');
+            }
+            else if (confirm('Confirm locking these categories?\n\n' + categories.join(', '))) {
                 SendLockCategories(videoID, categories, actionTypes, reason, modal.CloseModal.bind(modal));
             }
         });
