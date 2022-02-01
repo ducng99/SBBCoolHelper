@@ -722,11 +722,7 @@ div.disabled {
         }
     }
 
-    function VerifyUUID(uuid) {
-        return /[A-Z0-9]{64}/i.test(uuid);
-    }
+    const VerifyUUID = (uuid) => /^[a-f0-9]{64,65}$/.test(uuid);
 
-    function VerifyUserID(userID) {
-        return /[A-Z0-9]{36}/i.test(userID);
-    }
+    const VerifyUserID = (userID) => userID.length >= 32;
 })();
