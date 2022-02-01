@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         SBB Cool Helper
 // @namespace    maxhyt.SBBCoolHelper
-// @version      1.1.0.0
+// @version      1.1.1.0
 // @description  Add VIP features to SBB site
 // @license      AGPL-3.0-or-later
 // @copyright    2022. Thomas Nguyen
@@ -267,11 +267,11 @@ div.disabled {
         modal.OnClosed = onClosed;
 
         // Assign save function to modal
-        modal.OnSave = () => {
+        modal.AddButton('Save changes', () => {
             if (confirm(`Confirm changing category from "${category}" to "${categorySelect.value}"?`)) {
                 SendCategoryUpdate(segmentId, categorySelect.value, modal.CloseModal);
             }
-        };
+        });
     }
 
     /**
@@ -282,11 +282,12 @@ div.disabled {
     function ShowLockCategoriesModal(videoID, onClosed) {
         // Create a modal
         const modal = new Modal;
-        modal.Title = 'Lock categories';
+        modal.Title = 'Lock/Unlock categories for ' + videoID;
 
         // Add categories to modal
         const categoriesContainer = document.createElement('div');
         categoriesContainer.classList.add('row');
+        categoriesContainer.id = 'modal_categories_container';
         const categoriesContainerLeftCol = document.createElement('div');
         categoriesContainerLeftCol.classList.add('col-12', 'col-md-6');
         const categoriesContainerRightCol = document.createElement('div');
@@ -307,6 +308,7 @@ div.disabled {
             const checkbox = document.createElement('input');
             checkbox.classList.add('form-check-input');
             checkbox.type = 'checkbox';
+            checkbox.value = cat;
             checkbox.id = `modal_checkbox_category_${cat}`;
 
             box.appendChild(checkbox);
@@ -325,6 +327,7 @@ div.disabled {
 
         // Add action types to modal
         const actionTypesContainer = document.createElement('div');
+        actionTypesContainer.id = 'modal_action_types_container';
         ACTION_TYPES.forEach(type => {
             const box = document.createElement('div');
             box.classList.add('form-check');
@@ -337,20 +340,22 @@ div.disabled {
             const checkbox = document.createElement('input');
             checkbox.classList.add('form-check-input');
             checkbox.type = 'checkbox';
+            checkbox.value = type;
             checkbox.id = `modal_checkbox_type_${type}`;
-            checkbox.checked = true;
+            checkbox.defaultChecked = true;
 
             box.appendChild(checkbox);
             box.appendChild(label);
             actionTypesContainer.appendChild(box);
         });
 
-        modal.Body.innerHTML += '<h5>Choose action types to lock:</h5>';
+        modal.Body.innerHTML += '<h5 class="mt-3">Choose action types to lock:</h5>';
         modal.Body.appendChild(actionTypesContainer);
 
         // Add reason to modal
         const reasonTextarea = document.createElement('textarea');
         reasonTextarea.style.width = '100%';
+        reasonTextarea.style.resize = 'vertical';
         modal.Body.innerHTML += '<h5>Reason:</h5>';
         modal.Body.appendChild(reasonTextarea);
 
@@ -358,16 +363,25 @@ div.disabled {
         modal.OnClosed = onClosed;
 
         // Assign save function to modal
-        modal.OnSave = () => {
-            if (confirm('Confirm locking categories?')) {
-                const categories = [...categoriesContainer.querySelectorAll('input[type="checkbox"]:checked')]
-                    .map(c => c.id.replace('modal_checkbox_category_', ''));
-                const actionTypes = [...actionTypesContainer.querySelectorAll('input[type="checkbox"]:checked')]
-                    .map(t => t.id.replace('modal_checkbox_type_', ''));
-
-                SendLockCategories(videoID, categories, actionTypes, modal.CloseModal);
+        modal.AddButton('Lock', () => {
+            // Bootstrap will clone the `categoriesContainer` and `actionTypesContainer` (I think), therefore we need to get the values by querying the body
+            const categories = [...modal.Body.querySelectorAll('#modal_categories_container input[type="checkbox"]:checked')].map(c => c.value);
+            const actionTypes = [...modal.Body.querySelectorAll('#modal_action_types_container input[type="checkbox"]:checked')].map(t => t.value);
+            const reason = reasonTextarea.value;
+            
+            if (confirm('Confirm locking these categories?\n\n' + categories.join(', '))) {
+                SendLockCategories(videoID, categories, actionTypes, reason, modal.CloseModal.bind(modal));
             }
-        };
+        });
+        
+        modal.AddButton('Unlock', () => {
+            const categories = [...modal.Body.querySelectorAll('#modal_categories_container input[type="checkbox"]:checked')].map(c => c.value);
+            const actionTypes = [...modal.Body.querySelectorAll('#modal_action_types_container input[type="checkbox"]:checked')].map(t => t.value);
+            
+            if (confirm('Confirm unlocking these categories?\n\n' + categories.join(', '))) {
+                SendUnlockCategories(videoID, categories, actionTypes, modal.CloseModal.bind(modal));
+            }
+        });
     }
 
     /**
@@ -376,17 +390,15 @@ div.disabled {
     class Modal {
         _bootstrapModal;
 
-        /** @type {HTMLElement} */
+        /** @type {HTMLDivElement} */
         _modal;
-        /** @type {HTMLElement} */
+        /** @type {HTMLDivElement} */
         _modalBody;
-        /** @type {HTMLElement} */
+        /** @type {HTMLHeadElement} */
         _title;
-        /** @type {HTMLElement} */
-        _saveButton;
+        /** @type {HTMLButtonElement[]} */
+        _buttons;
 
-        /** @type {Function|undefined} */
-        _onSave;
         /** @type {Function|undefined} */
         _onClosed;
 
@@ -404,17 +416,12 @@ div.disabled {
                 <div class="modal-body"></div>
                 <div class="modal-footer">
                     <button type="button" data-bs-dismiss="modal" class="btn btn-secondary">Close</button>
-                    <button type="button" action="save" class="btn btn-primary">Save changes</button>
                 </div>
             </div></div>
             `;
 
             this._title = this._modal.querySelector('.modal-title');
             this._modalBody = this._modal.querySelector('.modal-body');
-
-            // Assign functionality to save button
-            this._saveButton = this._modal.querySelector('button[action="save"]');
-            this._saveButton.addEventListener('click', () => { if (this._onSave) this._onSave(); });
 
             document.body.appendChild(this._modal);
 
@@ -431,19 +438,26 @@ div.disabled {
         CloseModal() {
             this._bootstrapModal.hide();
         }
+        
+        /**
+         * Add a button at the bottom of the modal (primary buttons)
+         * @param {string} text Button text
+         * @param {(this: HTMLButtonElement, ev: MouseEvent) => any} action Action to perform when button is clicked
+         */
+        AddButton(text, action) {
+            const button = document.createElement('button');
+            button.classList.add('btn', 'btn-primary');
+            button.textContent = text;
+            button.addEventListener('click', action);
+            
+            this._modal.querySelector('.modal-footer').appendChild(button);
+        }
 
         /**
          * @param {string} title
          */
         set Title(title) {
             this._title.textContent = title;
-        }
-
-        /**
-         * @param {Function} onSave
-         */
-        set OnSave(onSave) {
-            this._onSave = onSave;
         }
 
         /**
@@ -577,12 +591,14 @@ div.disabled {
      * Send request to lock categories for a video
      * @param {string} videoID 
      * @param {string[]} categories an array of categories being locked
+     * @param {string[]} actionTypes an array of action types being locked
      * @param {string} reason why these categories are locked
      * @param {Function|undefined} onFinish function to call when the request is finished (both success or fail)
      */
-    function SendLockCategories(videoID, categories, reason, onFinish) {
+    function SendLockCategories(videoID, categories, actionTypes, reason, onFinish) {
         const userID = GM_getValue('userID');
         const invalidCategories = categories.filter(c => CATEGORIES.indexOf(c) === -1);
+        const invalidActionTypes = actionTypes.filter(t => ACTION_TYPES.indexOf(t) === -1);
 
         if (!VerifyUserID(userID)) {
             alert(`Invalid user ID: "${userID}"`);
@@ -594,6 +610,11 @@ div.disabled {
 
             if (onFinish) onFinish();
         }
+        else if (invalidActionTypes.length > 0) {
+            alert('Invalid action types: ' + invalidActionTypes.join(', '));
+            
+            if (onFinish) onFinish();
+        }
         else if (!reason) {
             alert('A reason needs to be provided');
 
@@ -603,13 +624,15 @@ div.disabled {
             GM_xmlhttpRequest({
                 method: 'POST',
                 url: 'https://sponsor.ajay.app/api/lockCategories',
-                data: JSON.stringify({ videoID, userID, categories, reason }),
+                data: JSON.stringify({ videoID, userID, categories, actionTypes, reason }),
+                headers: { 'Content-Type': 'application/json' },
                 onload: function (response) {
                     switch (response.status) {
                         case 400:
                             alert('Failed to lock categories. Please check these info and your User ID\n\n' +
                                 'Video ID: ' + videoID + '\n' +
                                 'Categories: ' + categories.join(', ') + '\n' +
+                                'Action types: ' + actionTypes.join(', ') + '\n' +
                                 'Reason: ' + reason);
                             break;
                         case 403:
@@ -617,6 +640,70 @@ div.disabled {
                             break;
                         case 200:
                             alert('Locked!');
+                            break;
+                        default:
+                            alert('Failed to send the request, something might be wrong with the server.');
+                            break;
+                    }
+
+                    if (onFinish) onFinish();
+                },
+                onerror: function () {
+                    alert('Failed to send the request, something might be wrong with the server or your internet is 💩.');
+
+                    if (onFinish) onFinish();
+                }
+            });
+        }
+    }
+
+    /**
+     * Send request to unlock categories for a video
+     * @param {string} videoID 
+     * @param {string[]} categories an array of categories being locked
+     * @param {string[]} actionTypes an array of action types being locked
+     * @param {Function|undefined} onFinish function to call when the request is finished (both success or fail)
+     */
+    function SendUnlockCategories(videoID, categories, actionTypes, onFinish) {
+        const userID = GM_getValue('userID');
+        const invalidCategories = categories.filter(c => CATEGORIES.indexOf(c) === -1);
+        const invalidActionTypes = actionTypes.filter(t => ACTION_TYPES.indexOf(t) === -1);
+
+        if (!VerifyUserID(userID)) {
+            alert(`Invalid user ID: "${userID}"`);
+
+            if (onFinish) onFinish();
+        }
+        else if (invalidCategories.length > 0) {
+            alert('Invalid categories: ' + invalidCategories.join(', '));
+
+            if (onFinish) onFinish();
+        }
+        else if (invalidActionTypes.length > 0) {
+            alert('Invalid action types: ' + invalidActionTypes.join(', '));
+            
+            if (onFinish) onFinish();
+        }
+        else {
+            GM_xmlhttpRequest({
+                method: 'DELETE',
+                url: 'https://sponsor.ajay.app/api/lockCategories',
+                data: JSON.stringify({ videoID, userID, categories, actionTypes }),
+                headers: { 'Content-Type': 'application/json' },
+                responseType: 'json',
+                onload: function (response) {
+                    switch (response.status) {
+                        case 400:
+                            alert('Failed to unlock categories. Please check these info and your User ID\n\n' +
+                                'Video ID: ' + videoID + '\n' +
+                                'Categories: ' + categories.join(', ') + '\n' +
+                                'Action types: ' + actionTypes.join(', '));
+                            break;
+                        case 403:
+                            alert('Unlock is rejected. You are not a VIP\n\n' + response.response.message);
+                            break;
+                        case 200:
+                            alert(response.response.message);
                             break;
                         default:
                             alert('Failed to send the request, something might be wrong with the server.');
