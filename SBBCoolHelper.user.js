@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         SBB Cool Helper
 // @namespace    maxhyt.SBBCoolHelper
-// @version      1.1.3.0
+// @version      1.1.3.1
 // @description  Add VIP features to SBB site
 // @license      AGPL-3.0-or-later
 // @copyright    2022. Thomas Nguyen
@@ -717,7 +717,11 @@ div.disabled {
         }
     }
 
-    const VerifyUUID = (uuid) => /^[a-f0-9]{64,65}$/.test(uuid);
+    function VerifyUUID(uuid) { 
+        return /^[a-f0-9]{64,65}$/.test(uuid);
+    }
 
-    const VerifyUserID = (userID) => userID.length >= 32;
+    function VerifyUserID(userID) {
+        return userID.length >= 32;
+    }
 })();
