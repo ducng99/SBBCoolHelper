@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         SBB Cool Helper
 // @namespace    maxhyt.SBBCoolHelper
-// @version      1.1.3.1
+// @version      1.1.4.0
 // @description  Add VIP features to SBB site
 // @license      AGPL-3.0-or-later
 // @copyright    2022. Thomas Nguyen
