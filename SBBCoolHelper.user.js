@@ -159,14 +159,10 @@ div.disabled {
         const downvoteButton = votingContainer.appendFromString(`<div class="voteButton">${THUMBS_DOWN_ICON}</div>`);
 
         if (row.children[VoteHeaderIndex].textContent.includes('👑')) {
-            if (row.querySelector('textarea[name="UserID"]')?.value !== GM_getValue('userID')) {
-                downvoteButton.setAttribute('title', 'This user is a VIP, be sure to discuss first before downvoting this segment');
-            }
-
+            downvoteButton.setAttribute('title', 'This user is a VIP, be sure to discuss first before downvoting this segment');
             downvoteButton.style.color = '#ffc83d';
         }
-
-        if (!downvoteButton.hasAttribute('title')) {
+        else {
             downvoteButton.setAttribute('title', 'Downvote this segment');
         }
 
