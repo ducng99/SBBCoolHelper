@@ -415,9 +415,7 @@ div.disabled {
                     <button type="button" data-bs-dismiss="modal" class="btn-close" title="Close"></button>
                 </div>
                 <div class="modal-body"></div>
-                <div class="modal-footer">
-                    <button type="button" data-bs-dismiss="modal" class="btn btn-secondary">Close</button>
-                </div>
+                <div class="modal-footer"></div>
             </div></div>
             `;
 
