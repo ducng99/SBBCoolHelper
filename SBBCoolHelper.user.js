@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         SBB Cool Helper
 // @namespace    maxhyt.SBBCoolHelper
-// @version      1.1.4.0
+// @version      1.1.5.0
 // @description  Add VIP features to SBB site
 // @license      AGPL-3.0-or-later
 // @copyright    2022. Thomas Nguyen
@@ -47,14 +47,14 @@ div.disabled {
 
     // Constants
     // Icons by Font Awesome
-    const thumbsUpIcon = '<svg viewBox="0 0 512 512"><path fill="currentColor" d="M128 447.1V223.1c0-17.67-14.33-31.1-32-31.1H32c-17.67 0-32 14.33-32 31.1v223.1c0 17.67 14.33 31.1 32 31.1h64C113.7 479.1 128 465.6 128 447.1zM512 224.1c0-26.5-21.48-47.98-48-47.98h-146.5c22.77-37.91 34.52-80.88 34.52-96.02C352 56.52 333.5 32 302.5 32c-63.13 0-26.36 76.15-108.2 141.6L178 186.6C166.2 196.1 160.2 210 160.1 224c-.0234 .0234 0 0 0 0L160 384c0 15.1 7.113 29.33 19.2 38.39l34.14 25.59C241 468.8 274.7 480 309.3 480H368c26.52 0 48-21.47 48-47.98c0-3.635-.4805-7.143-1.246-10.55C434 415.2 448 397.4 448 376c0-9.148-2.697-17.61-7.139-24.88C463.1 347 480 327.5 480 304.1c0-12.5-4.893-23.78-12.72-32.32C492.2 270.1 512 249.5 512 224.1z"></path></svg>';
-    const thumbsDownIcon = '<svg viewBox="0 0 512 512"><path fill="currentColor" d="M96 32.04H32c-17.67 0-32 14.32-32 31.1v223.1c0 17.67 14.33 31.1 32 31.1h64c17.67 0 32-14.33 32-31.1V64.03C128 46.36 113.7 32.04 96 32.04zM467.3 240.2C475.1 231.7 480 220.4 480 207.9c0-23.47-16.87-42.92-39.14-47.09C445.3 153.6 448 145.1 448 135.1c0-21.32-14-39.18-33.25-45.43C415.5 87.12 416 83.61 416 79.98C416 53.47 394.5 32 368 32h-58.69c-34.61 0-68.28 11.22-95.97 31.98L179.2 89.57C167.1 98.63 160 112.9 160 127.1l.1074 160c0 0-.0234-.0234 0 0c.0703 13.99 6.123 27.94 17.91 37.36l16.3 13.03C276.2 403.9 239.4 480 302.5 480c30.96 0 49.47-24.52 49.47-48.11c0-15.15-11.76-58.12-34.52-96.02H464c26.52 0 48-21.47 48-47.98C512 262.5 492.2 241.9 467.3 240.2z"></path></svg>';
-    const rotateLeftIcon = '<svg viewBox="0 0 512 512"><path fill="currentColor" d="M480 256c0 123.4-100.5 223.9-223.9 223.9c-48.84 0-95.17-15.58-134.2-44.86c-14.12-10.59-16.97-30.66-6.375-44.81c10.59-14.12 30.62-16.94 44.81-6.375c27.84 20.91 61 31.94 95.88 31.94C344.3 415.8 416 344.1 416 256s-71.69-159.8-159.8-159.8c-37.46 0-73.09 13.49-101.3 36.64l45.12 45.14c17.01 17.02 4.955 46.1-19.1 46.1H35.17C24.58 224.1 16 215.5 16 204.9V59.04c0-24.04 29.07-36.08 46.07-19.07l47.6 47.63C149.9 52.71 201.5 32.11 256.1 32.11C379.5 32.11 480 132.6 480 256z"></path></svg>';
+    const THUMBS_UP_ICON = '<svg viewBox="0 0 512 512"><path fill="currentColor" d="M128 447.1V223.1c0-17.67-14.33-31.1-32-31.1H32c-17.67 0-32 14.33-32 31.1v223.1c0 17.67 14.33 31.1 32 31.1h64C113.7 479.1 128 465.6 128 447.1zM512 224.1c0-26.5-21.48-47.98-48-47.98h-146.5c22.77-37.91 34.52-80.88 34.52-96.02C352 56.52 333.5 32 302.5 32c-63.13 0-26.36 76.15-108.2 141.6L178 186.6C166.2 196.1 160.2 210 160.1 224c-.0234 .0234 0 0 0 0L160 384c0 15.1 7.113 29.33 19.2 38.39l34.14 25.59C241 468.8 274.7 480 309.3 480H368c26.52 0 48-21.47 48-47.98c0-3.635-.4805-7.143-1.246-10.55C434 415.2 448 397.4 448 376c0-9.148-2.697-17.61-7.139-24.88C463.1 347 480 327.5 480 304.1c0-12.5-4.893-23.78-12.72-32.32C492.2 270.1 512 249.5 512 224.1z"></path></svg>';
+    const THUMBS_DOWN_ICON = '<svg viewBox="0 0 512 512"><path fill="currentColor" d="M96 32.04H32c-17.67 0-32 14.32-32 31.1v223.1c0 17.67 14.33 31.1 32 31.1h64c17.67 0 32-14.33 32-31.1V64.03C128 46.36 113.7 32.04 96 32.04zM467.3 240.2C475.1 231.7 480 220.4 480 207.9c0-23.47-16.87-42.92-39.14-47.09C445.3 153.6 448 145.1 448 135.1c0-21.32-14-39.18-33.25-45.43C415.5 87.12 416 83.61 416 79.98C416 53.47 394.5 32 368 32h-58.69c-34.61 0-68.28 11.22-95.97 31.98L179.2 89.57C167.1 98.63 160 112.9 160 127.1l.1074 160c0 0-.0234-.0234 0 0c.0703 13.99 6.123 27.94 17.91 37.36l16.3 13.03C276.2 403.9 239.4 480 302.5 480c30.96 0 49.47-24.52 49.47-48.11c0-15.15-11.76-58.12-34.52-96.02H464c26.52 0 48-21.47 48-47.98C512 262.5 492.2 241.9 467.3 240.2z"></path></svg>';
+    const ROTATE_LEFT_ICON = '<svg viewBox="0 0 512 512"><path fill="currentColor" d="M480 256c0 123.4-100.5 223.9-223.9 223.9c-48.84 0-95.17-15.58-134.2-44.86c-14.12-10.59-16.97-30.66-6.375-44.81c10.59-14.12 30.62-16.94 44.81-6.375c27.84 20.91 61 31.94 95.88 31.94C344.3 415.8 416 344.1 416 256s-71.69-159.8-159.8-159.8c-37.46 0-73.09 13.49-101.3 36.64l45.12 45.14c17.01 17.02 4.955 46.1-19.1 46.1H35.17C24.58 224.1 16 215.5 16 204.9V59.04c0-24.04 29.07-36.08 46.07-19.07l47.6 47.63C149.9 52.71 201.5 32.11 256.1 32.11C379.5 32.11 480 132.6 480 256z"></path></svg>';
 
     const VOTE_SEG_OPTIONS = {
-        UP: 1,
-        DOWN: 0,
-        UNDO: 20
+        Up: 1,
+        Down: 0,
+        Undo: 20
     };
 
     const CATEGORIES = ['sponsor', 'selfpromo', 'interaction', 'intro', 'outro', 'preview', 'music_offtopic', 'filler', 'poi_highlight', 'exclusive_access'];
@@ -68,9 +68,7 @@ div.disabled {
     const DarkModeButton = document.body.querySelector('#darkmode');
 
     // Button to set User ID
-    const userIDSetButton = document.createElement('button');
-    userIDSetButton.classList.add('btn', 'me-2');
-    userIDSetButton.append("Set UserID");
+    const userIDSetButton = DarkModeButton.parentNode.appendFromString('<button class="btn me-2">Set UserID</button>');
     userIDSetButton.addEventListener('click', () => {
         const userID = prompt("Enter your private user ID:");
 
@@ -86,7 +84,6 @@ div.disabled {
             alert("Invalid user ID! Please try again.");
         }
     });
-    DarkModeButton.parentNode.appendChild(userIDSetButton);
 
     if (VerifyUserID(GM_getValue('userID'))) {
         userIDSetButton.classList.add('btn-secondary');
@@ -145,27 +142,21 @@ div.disabled {
      * @param {HTMLElement} row 
      */
     function AddVotingButtonsToRow(row) {
-        const votingContainer = document.createElement('div');
+        const votingContainer = row.children[VoteHeaderIndex].appendFromString('<div></div>');
 
         // Upvote button
-        const upvoteButton = document.createElement('div');
-        upvoteButton.appendFromString(thumbsUpIcon);
-        upvoteButton.classList.add('voteButton');
-        upvoteButton.setAttribute('title', 'Upvote this segment');
+        const upvoteButton = votingContainer.appendFromString(`<div class="voteButton" title="Upvote this segment">${THUMBS_UP_ICON}</div>`);
         upvoteButton.addEventListener('click', () => {
             if (!upvoteButton.classList.contains('disabled') && confirm('Confirm upvoting?')) {
                 const segmentId = row.querySelector('textarea[name="UUID"]')?.value;
                 DisableVoteButtons();
 
-                SendVoteSegment(segmentId, VOTE_SEG_OPTIONS.UP, EnableVoteButtons);
+                SendVoteSegment(segmentId, VOTE_SEG_OPTIONS.Up, EnableVoteButtons);
             }
         });
-        votingContainer.appendChild(upvoteButton);
 
         // Downvote button
-        const downvoteButton = document.createElement('div');
-        downvoteButton.appendFromString(thumbsDownIcon);
-        downvoteButton.classList.add('voteButton');
+        const downvoteButton = votingContainer.appendFromString(`<div class="voteButton">${THUMBS_DOWN_ICON}</div>`);
 
         if (row.children[VoteHeaderIndex].textContent.includes('👑')) {
             if (row.querySelector('textarea[name="UserID"]')?.value !== GM_getValue('userID')) {
@@ -184,28 +175,22 @@ div.disabled {
                 const segmentId = row.querySelector('textarea[name="UUID"]')?.value;
                 DisableVoteButtons();
 
-                SendVoteSegment(segmentId, VOTE_SEG_OPTIONS.DOWN, EnableVoteButtons);
+                SendVoteSegment(segmentId, VOTE_SEG_OPTIONS.Down, EnableVoteButtons);
             }
         });
-        votingContainer.appendChild(downvoteButton);
 
         // Undo vote button
-        const undovoteButton = document.createElement('div');
-        undovoteButton.appendFromString(rotateLeftIcon);
-        undovoteButton.classList.add('voteButton');
-        undovoteButton.setAttribute('title', 'Undo vote on this segment');
+        const undovoteButton = votingContainer.appendFromString(`<div class="voteButton" title="Undo vote on this segment">${ROTATE_LEFT_ICON}</div>`);
         undovoteButton.addEventListener('click', () => {
             if (!undovoteButton.classList.contains('disabled') && confirm('Confirm undo vote?')) {
                 const segmentId = row.querySelector('textarea[name="UUID"]')?.value;
                 DisableVoteButtons();
 
-                SendVoteSegment(segmentId, VOTE_SEG_OPTIONS.UNDO, EnableVoteButtons);
+                SendVoteSegment(segmentId, VOTE_SEG_OPTIONS.Undo, EnableVoteButtons);
             }
         });
-        votingContainer.appendChild(undovoteButton);
 
         row.children[VoteHeaderIndex].style.minWidth = '6.7em'; // Make room for voting buttons
-        row.children[VoteHeaderIndex].appendChild(votingContainer);
 
         function DisableVoteButtons() {
             upvoteButton.classList.add('disabled');
@@ -225,10 +210,9 @@ div.disabled {
      * @param {HTMLElement} row 
      */
     function AddCategoryChangeButtonToRow(row) {
-        const categoryChangeButton = document.createElement('button');
-        categoryChangeButton.classList.add('btn', 'btn-secondary', 'btn-sm', 'mt-1');
-        categoryChangeButton.setAttribute('title', "Change this segment's category");
-        categoryChangeButton.append('✏');
+        row.children[CategoryHeaderIndex].appendChild(document.createElement('br'));
+        
+        const categoryChangeButton = row.children[CategoryHeaderIndex].appendFromString('<button class="btn btn-secondary btn-sm mt-1" title="Change this segment\'s category">✏</button>');
         categoryChangeButton.addEventListener('click', () => {
             categoryChangeButton.classList.add('disabled');
 
@@ -239,9 +223,6 @@ div.disabled {
                 categoryChangeButton.classList.remove('disabled');
             });
         });
-
-        row.children[CategoryHeaderIndex].appendChild(document.createElement('br'));
-        row.children[CategoryHeaderIndex].appendChild(categoryChangeButton);
     }
 
     /**
@@ -256,25 +237,18 @@ div.disabled {
         modal.Title = 'Change category';
 
         // Add categories to modal
-        const categorySelect = document.createElement('select');
-        categorySelect.id = 'modal_select_category';
-        categorySelect.classList.add('form-select', 'mt-2');
+        modal.Body.appendFromString('<label for="modal_select_category">Select a new category:</label>');
+        
+        const categorySelect = modal.Body.appendFromString('<select id="modal_select_category" class="form-select mt-2"></select>');
 
         CATEGORIES.forEach(c => {
-            const option = document.createElement('option');
-            option.value = c;
-            option.text = c;
+            const option = categorySelect.appendFromString(`<option>${c}</option>`);
 
             if (category === c) {
                 option.selected = true;
                 option.disabled = true;
             }
-
-            categorySelect.appendChild(option);
         });
-
-        modal.Body.appendFromString('<label for="modal_select_category">Select a new category:</label>');
-        modal.Body.appendChild(categorySelect);
 
         // Assign close function to modal
         modal.OnClosed = onClosed;
@@ -298,48 +272,9 @@ div.disabled {
         modal.Title = 'Lock/Unlock categories for ' + videoID;
 
         // Add categories to modal
-        const categoriesContainer = document.createElement('div');
-        categoriesContainer.classList.add('row');
-        categoriesContainer.id = 'modal_categories_container';
-        const categoriesContainerLeftCol = document.createElement('div');
-        categoriesContainerLeftCol.classList.add('col-12', 'col-md-6');
-        const categoriesContainerRightCol = document.createElement('div');
-        categoriesContainerRightCol.classList.add('col-12', 'col-md-6');
-
-        categoriesContainer.appendChild(categoriesContainerLeftCol);
-        categoriesContainer.appendChild(categoriesContainerRightCol);
-
-        CATEGORIES.forEach((cat, i) => {
-            const box = document.createElement('div');
-            box.classList.add('form-check');
-
-            const label = document.createElement('label');
-            label.classList.add('form-check-label');
-            label.setAttribute('for', `modal_checkbox_category_${cat}`);
-            label.append(cat);
-
-            const checkbox = document.createElement('input');
-            checkbox.classList.add('form-check-input');
-            checkbox.type = 'checkbox';
-            checkbox.value = cat;
-            checkbox.id = `modal_checkbox_category_${cat}`;
-
-            box.appendChild(checkbox);
-            box.appendChild(label);
-
-            if (i < CATEGORIES.length / 2) {
-                categoriesContainerLeftCol.appendChild(box);
-            }
-            else {
-                categoriesContainerRightCol.appendChild(box);
-            }
-        });
-
         modal.Body.appendFromString('<h5>Choose categories to lock:</h5>');
 
-        const selectAllCategoriesButton = document.createElement('button');
-        selectAllCategoriesButton.classList.add('btn', 'btn-secondary', 'btn-sm', 'my-1');
-        selectAllCategoriesButton.append('(Un)Select all');
+        const selectAllCategoriesButton = modal.Body.appendFromString('<button class="btn btn-secondary btn-sm my-1">(Un)Select all</button>');
         selectAllCategoriesButton.addEventListener('click', () => {
             const checkboxes = [...modal.Body.querySelectorAll('#modal_categories_container input[type="checkbox"]')];
 
@@ -356,41 +291,42 @@ div.disabled {
                 });
             }
         });
+        
+        const categoriesContainer = modal.Body.appendFromString('<div id="modal_categories_container" class="row"></div>');
+        const categoriesContainerLeftCol = categoriesContainer.appendFromString('<div class="col-12 col-sm-6"></div>');
+        const categoriesContainerRightCol = categoriesContainer.appendFromString('<div class="col-12 col-sm-6"></div>');
 
-        modal.Body.appendChild(selectAllCategoriesButton);
-        modal.Body.appendChild(categoriesContainer);
-
-        // Add action types to modal
-        const actionTypesContainer = document.createElement('div');
-        actionTypesContainer.id = 'modal_action_types_container';
-        ACTION_TYPES.forEach(type => {
+        CATEGORIES.forEach((cat, i) => {
             const box = document.createElement('div');
             box.classList.add('form-check');
 
-            const label = document.createElement('label');
-            label.classList.add('form-check-label');
-            label.setAttribute('for', `modal_checkbox_type_${type}`);
-            label.append(type);
+            box.appendFromString(`<input class="form-check-input" type="checkbox" id="modal_checkbox_category_${cat}" value="${cat}">`);
+            box.appendFromString(`<label class="form-check-label" for="modal_checkbox_category_${cat}">${cat}</label>`);
 
-            const checkbox = document.createElement('input');
-            checkbox.classList.add('form-check-input');
-            checkbox.type = 'checkbox';
-            checkbox.value = type;
-            checkbox.id = `modal_checkbox_type_${type}`;
-            checkbox.defaultChecked = true;
-
-            box.appendChild(checkbox);
-            box.appendChild(label);
-            actionTypesContainer.appendChild(box);
+            if (i < CATEGORIES.length / 2) {
+                categoriesContainerLeftCol.appendChild(box);
+            }
+            else {
+                categoriesContainerRightCol.appendChild(box);
+            }
         });
 
+        // Add action types to modal
         modal.Body.appendFromString('<h5 class="mt-3">Choose action types to lock:</h5>');
-        modal.Body.appendChild(actionTypesContainer);
+        
+        const actionTypesContainer = modal.Body.appendFromString('<div id="modal_action_types_container"></div>');
+        ACTION_TYPES.forEach(type => {
+            const box = actionTypesContainer.appendFromString('<div class="form-check"></div>');
+
+            box.appendFromString(`<input class="form-check-input" type="checkbox" id="modal_checkbox_type_${type}" value="${type}" checked/>`);
+            box.appendFromString(`<label class="form-check-label" for="modal_checkbox_type_${type}">${type}</label>`);
+
+            actionTypesContainer.appendChild(box);
+        });
 
         // Add reason to modal
         modal.Body.appendFromString('<h5 class="mt-3">Reason:</h5>');
         const reasonTextarea = modal.Body.appendFromString('<textarea class="form-control" width="100%" style="resize: vertical"></textarea>');
-        modal.Body.appendChild(reasonTextarea);
 
         // Assign close function to modal
         modal.OnClosed = onClosed;
@@ -431,18 +367,13 @@ div.disabled {
         _modalBody;
         /** @type {HTMLHeadElement} */
         _title;
-        /** @type {HTMLButtonElement[]} */
-        _buttons;
 
         /** @type {Function|undefined} */
         _onClosed;
 
         constructor() {
             // Create the modal
-            this._modal = document.createElement('div');
-            this._modal.classList.add('modal', 'fade');
-
-            this._modal.innerHTML = `
+            this._modal = document.body.appendFromString(`<div class="modal fade" tabindex="-1" role="dialog" aria-hidden="true">
             <div class="modal-dialog"><div class="modal-content">
                 <div class="modal-header">
                     <h5 class="modal-title"></h5>
@@ -450,8 +381,7 @@ div.disabled {
                 </div>
                 <div class="modal-body"></div>
                 <div class="modal-footer"></div>
-            </div></div>
-            `;
+            </div></div></div>`);
 
             this._title = this._modal.querySelector('.modal-title');
             this._modalBody = this._modal.querySelector('.modal-body');
@@ -478,12 +408,8 @@ div.disabled {
          * @param {(this: HTMLButtonElement, ev: MouseEvent) => any} action Action to perform when button is clicked
          */
         AddButton(text, action) {
-            const button = document.createElement('button');
-            button.classList.add('btn', 'btn-primary');
-            button.append(text);
+            const button = this._modal.querySelector('.modal-footer').appendFromString(`<button type="button" class="btn btn-primary">${text}</button>`);
             button.addEventListener('click', action);
-
-            this._modal.querySelector('.modal-footer').appendChild(button);
         }
 
         /**
