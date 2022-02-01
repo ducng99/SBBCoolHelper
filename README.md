@@ -8,7 +8,8 @@ A small script to add additional functionalities to SBB for cool people 😎 (a.
 - *Please suggest*
 
 ## Install
-[Click me](https://raw.githubusercontent.com/ducng99/SBBCoolHelper/master/SBBCoolHelper.user.js)
+- Install [Tampermonkey](https://www.tampermonkey.net)
+- Install [this script](https://raw.githubusercontent.com/ducng99/SBBCoolHelper/master/SBBCoolHelper.user.js)
 
 ## About
 - [SponsorBlock](https://sponsor.ajay.app/)
