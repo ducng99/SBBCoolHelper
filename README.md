@@ -4,11 +4,11 @@ A small script to add additional functionalities to SBB for cool people 😎 (a.
 ## Features
 - Add voting (up, down, undo) to each segment
 - Add category change to each segment
-- Lock categories
+- Lock/Unlock categories
 - *Please suggest*
 
 ## Install
-[Click me](https://github.com/ducng99/SBBVIPHelper/raw/main/SBBVIPHelper.user.js)
+[Click me](https://raw.githubusercontent.com/ducng99/SBBCoolHelper/master/SBBCoolHelper.user.js)
 
 ## About
 - [SponsorBlock](https://sponsor.ajay.app/)
