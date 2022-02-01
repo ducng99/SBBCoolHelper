@@ -17,6 +17,17 @@
 (function () {
     'use strict';
 
+    // Extensions    
+    /**
+     * Append a new element to the DOM from a string
+     * @param {string} elementInString string representation of an element
+     */
+    HTMLElement.prototype.appendFromString = function (elementInString) {
+        let tmpDOM = document.createElement('div');
+        tmpDOM.innerHTML = elementInString;
+        this.appendChild(tmpDOM.firstChild);
+    }
+
     GM_addStyle(`
 .voteButton {
     display: inline-block;
@@ -114,14 +125,14 @@ div.disabled {
         else if (youtubeURL.includes('youtu.be')) {
             videoID = new URL(youtubeURL).pathname.substring(1);
         }
-        
+
         if (videoID) {
             const categoryLockButton = document.createElement('button');
             categoryLockButton.classList.add('btn', 'btn-warning', 'me-2');
             categoryLockButton.textContent = '🔒';
-            
+
             categoryLockButton.addEventListener('click', () => ShowLockCategoriesModal(videoID));
-            
+
             document.body.querySelector('nav > div').insertBefore(categoryLockButton, document.body.querySelector('#darkmode'));
         }
     }
@@ -135,7 +146,7 @@ div.disabled {
 
         // Upvote button
         const upvoteButton = document.createElement('div');
-        upvoteButton.innerHTML = thumbsUpIcon;
+        upvoteButton.appendFromString(thumbsUpIcon);
         upvoteButton.classList.add('voteButton');
         upvoteButton.setAttribute('title', 'Upvote this segment');
         upvoteButton.addEventListener('click', () => {
@@ -150,7 +161,7 @@ div.disabled {
 
         // Downvote button
         const downvoteButton = document.createElement('div');
-        downvoteButton.innerHTML = thumbsDownIcon;
+        downvoteButton.appendFromString(thumbsDownIcon);
         downvoteButton.classList.add('voteButton');
 
         if (row.children[VoteHeaderIndex].textContent.includes('👑')) {
@@ -177,7 +188,7 @@ div.disabled {
 
         // Undo vote button
         const undovoteButton = document.createElement('div');
-        undovoteButton.innerHTML = rotateLeftIcon;
+        undovoteButton.appendFromString(rotateLeftIcon);
         undovoteButton.classList.add('voteButton');
         undovoteButton.setAttribute('title', 'Undo vote on this segment');
         undovoteButton.addEventListener('click', () => {
@@ -259,7 +270,7 @@ div.disabled {
             categorySelect.appendChild(option);
         });
 
-        modal.Body.innerHTML = '<label for="modal_select_category">Select a new category:</label>';
+        modal.Body.appendFromString('<label for="modal_select_category">Select a new category:</label>');
         modal.Body.appendChild(categorySelect);
 
         // Assign close function to modal
@@ -291,10 +302,10 @@ div.disabled {
         categoriesContainerLeftCol.classList.add('col-12', 'col-md-6');
         const categoriesContainerRightCol = document.createElement('div');
         categoriesContainerRightCol.classList.add('col-12', 'col-md-6');
-        
+
         categoriesContainer.appendChild(categoriesContainerLeftCol);
         categoriesContainer.appendChild(categoriesContainerRightCol);
-        
+
         CATEGORIES.forEach((cat, i) => {
             const box = document.createElement('div');
             box.classList.add('form-check');
@@ -312,7 +323,7 @@ div.disabled {
 
             box.appendChild(checkbox);
             box.appendChild(label);
-            
+
             if (i < CATEGORIES.length / 2) {
                 categoriesContainerLeftCol.appendChild(box);
             }
@@ -321,7 +332,29 @@ div.disabled {
             }
         });
 
-        modal.Body.innerHTML = '<h5>Choose categories to lock:</h5>';
+        modal.Body.appendFromString('<h5>Choose categories to lock:</h5>');
+
+        const selectAllCategoriesButton = document.createElement('button');
+        selectAllCategoriesButton.classList.add('btn', 'btn-secondary', 'btn-sm', 'my-1');
+        selectAllCategoriesButton.textContent = '(Un)Select all';
+        selectAllCategoriesButton.addEventListener('click', () => {
+            const checkboxes = [...modal.Body.querySelectorAll('#modal_categories_container input[type="checkbox"]')];
+
+            if (checkboxes.find(c => c.checked)) {
+                checkboxes.forEach(checkbox => {
+                    checkbox.checked = false;
+                });
+            }
+            else {
+                checkboxes.forEach(checkbox => {
+                    if (!['filler', 'poi_highlight', 'exclusive_access'].includes(checkbox.value)) {
+                        checkbox.checked = true;
+                    }
+                });
+            }
+        });
+
+        modal.Body.appendChild(selectAllCategoriesButton);
         modal.Body.appendChild(categoriesContainer);
 
         // Add action types to modal
@@ -348,24 +381,24 @@ div.disabled {
             actionTypesContainer.appendChild(box);
         });
 
-        modal.Body.innerHTML += '<h5 class="mt-3">Choose action types to lock:</h5>';
+        modal.Body.appendFromString('<h5 class="mt-3">Choose action types to lock:</h5>');
         modal.Body.appendChild(actionTypesContainer);
 
         // Add reason to modal
         const reasonTextarea = document.createElement('textarea');
         reasonTextarea.style.width = '100%';
         reasonTextarea.style.resize = 'vertical';
-        modal.Body.innerHTML += '<h5>Reason:</h5>';
+        modal.Body.appendFromString('<h5>Reason:</h5>');
         modal.Body.appendChild(reasonTextarea);
 
         // Assign close function to modal
         modal.OnClosed = onClosed;
-        
+
         // Add unlock button to modal
         modal.AddButton('🔓 Unlock', () => {
             const categories = [...modal.Body.querySelectorAll('#modal_categories_container input[type="checkbox"]:checked')].map(c => c.value);
             const actionTypes = [...modal.Body.querySelectorAll('#modal_action_types_container input[type="checkbox"]:checked')].map(t => t.value);
-            
+
             if (confirm('Confirm unlocking these categories?\n\n' + categories.join(', '))) {
                 SendUnlockCategories(videoID, categories, actionTypes, modal.CloseModal.bind(modal));
             }
@@ -377,7 +410,7 @@ div.disabled {
             const categories = [...modal.Body.querySelectorAll('#modal_categories_container input[type="checkbox"]:checked')].map(c => c.value);
             const actionTypes = [...modal.Body.querySelectorAll('#modal_action_types_container input[type="checkbox"]:checked')].map(t => t.value);
             const reason = reasonTextarea.value;
-            
+
             if (confirm('Confirm locking these categories?\n\n' + categories.join(', '))) {
                 SendLockCategories(videoID, categories, actionTypes, reason, modal.CloseModal.bind(modal));
             }
@@ -437,7 +470,7 @@ div.disabled {
         CloseModal() {
             this._bootstrapModal.hide();
         }
-        
+
         /**
          * Add a button at the bottom of the modal (primary buttons)
          * @param {string} text Button text
@@ -448,7 +481,7 @@ div.disabled {
             button.classList.add('btn', 'btn-primary');
             button.textContent = text;
             button.addEventListener('click', action);
-            
+
             this._modal.querySelector('.modal-footer').appendChild(button);
         }
 
@@ -611,7 +644,7 @@ div.disabled {
         }
         else if (invalidActionTypes.length > 0) {
             alert('Invalid action types: ' + invalidActionTypes.join(', '));
-            
+
             if (onFinish) onFinish();
         }
         else {
@@ -630,7 +663,7 @@ div.disabled {
                                 'Reason: ' + reason);
                             break;
                         case 403:
-                            alert('Lock is rejected. You are not a VIP\n\n' + response.response.message);
+                            alert('Lock is rejected. You are not a VIP');
                             break;
                         case 200:
                             alert('Locked!');
@@ -675,7 +708,7 @@ div.disabled {
         }
         else if (invalidActionTypes.length > 0) {
             alert('Invalid action types: ' + invalidActionTypes.join(', '));
-            
+
             if (onFinish) onFinish();
         }
         else {
@@ -694,7 +727,7 @@ div.disabled {
                                 'Action types: ' + actionTypes.join(', '));
                             break;
                         case 403:
-                            alert('Unlock is rejected. You are not a VIP\n\n' + response.response.message);
+                            alert('Unlock is rejected. You are not a VIP');
                             break;
                         case 200:
                             alert(response.response.message);
@@ -715,7 +748,8 @@ div.disabled {
         }
     }
 
-    function VerifyUUID(uuid) { 
+    // Utilities
+    function VerifyUUID(uuid) {
         return /^[a-f0-9]{64,65}$/.test(uuid);
     }
 
