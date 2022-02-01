@@ -68,9 +68,7 @@ div.disabled {
     const DarkModeButton = document.body.querySelector('#darkmode');
 
     // Button to set User ID
-    const userIDSetButton = document.createElement('button');
-    userIDSetButton.classList.add('btn', 'me-2');
-    userIDSetButton.append("Set UserID");
+    const userIDSetButton = DarkModeButton.parentNode.appendFromString('<button class="btn me-2">Set UserID</button>');
     userIDSetButton.addEventListener('click', () => {
         const userID = prompt("Enter your private user ID:");
 
@@ -86,7 +84,6 @@ div.disabled {
             alert("Invalid user ID! Please try again.");
         }
     });
-    DarkModeButton.parentNode.appendChild(userIDSetButton);
 
     if (VerifyUserID(GM_getValue('userID'))) {
         userIDSetButton.classList.add('btn-secondary');
@@ -145,13 +142,10 @@ div.disabled {
      * @param {HTMLElement} row 
      */
     function AddVotingButtonsToRow(row) {
-        const votingContainer = document.createElement('div');
+        const votingContainer = row.children[VoteHeaderIndex].appendFromString('<div></div>');
 
         // Upvote button
-        const upvoteButton = document.createElement('div');
-        upvoteButton.appendFromString(THUMBS_UP_ICON);
-        upvoteButton.classList.add('voteButton');
-        upvoteButton.setAttribute('title', 'Upvote this segment');
+        const upvoteButton = votingContainer.appendFromString(`<div class="voteButton" title="Upvote this segment">${THUMBS_UP_ICON}</div>`);
         upvoteButton.addEventListener('click', () => {
             if (!upvoteButton.classList.contains('disabled') && confirm('Confirm upvoting?')) {
                 const segmentId = row.querySelector('textarea[name="UUID"]')?.value;
@@ -160,12 +154,9 @@ div.disabled {
                 SendVoteSegment(segmentId, VOTE_SEG_OPTIONS.Up, EnableVoteButtons);
             }
         });
-        votingContainer.appendChild(upvoteButton);
 
         // Downvote button
-        const downvoteButton = document.createElement('div');
-        downvoteButton.appendFromString(THUMBS_DOWN_ICON);
-        downvoteButton.classList.add('voteButton');
+        const downvoteButton = votingContainer.appendFromString(`<div class="voteButton">${THUMBS_DOWN_ICON}</div>`);
 
         if (row.children[VoteHeaderIndex].textContent.includes('👑')) {
             if (row.querySelector('textarea[name="UserID"]')?.value !== GM_getValue('userID')) {
@@ -187,13 +178,9 @@ div.disabled {
                 SendVoteSegment(segmentId, VOTE_SEG_OPTIONS.Down, EnableVoteButtons);
             }
         });
-        votingContainer.appendChild(downvoteButton);
 
         // Undo vote button
-        const undovoteButton = document.createElement('div');
-        undovoteButton.appendFromString(ROTATE_LEFT_ICON);
-        undovoteButton.classList.add('voteButton');
-        undovoteButton.setAttribute('title', 'Undo vote on this segment');
+        const undovoteButton = votingContainer.appendFromString(`<div class="voteButton" title="Undo vote on this segment">${ROTATE_LEFT_ICON}</div>`);
         undovoteButton.addEventListener('click', () => {
             if (!undovoteButton.classList.contains('disabled') && confirm('Confirm undo vote?')) {
                 const segmentId = row.querySelector('textarea[name="UUID"]')?.value;
@@ -202,10 +189,8 @@ div.disabled {
                 SendVoteSegment(segmentId, VOTE_SEG_OPTIONS.Undo, EnableVoteButtons);
             }
         });
-        votingContainer.appendChild(undovoteButton);
 
         row.children[VoteHeaderIndex].style.minWidth = '6.7em'; // Make room for voting buttons
-        row.children[VoteHeaderIndex].appendChild(votingContainer);
 
         function DisableVoteButtons() {
             upvoteButton.classList.add('disabled');
@@ -225,10 +210,9 @@ div.disabled {
      * @param {HTMLElement} row 
      */
     function AddCategoryChangeButtonToRow(row) {
-        const categoryChangeButton = document.createElement('button');
-        categoryChangeButton.classList.add('btn', 'btn-secondary', 'btn-sm', 'mt-1');
-        categoryChangeButton.setAttribute('title', "Change this segment's category");
-        categoryChangeButton.append('✏');
+        row.children[CategoryHeaderIndex].appendChild(document.createElement('br'));
+        
+        const categoryChangeButton = row.children[CategoryHeaderIndex].appendFromString('<button class="btn btn-secondary btn-sm mt-1" title="Change this segment\'s category">✏</button>');
         categoryChangeButton.addEventListener('click', () => {
             categoryChangeButton.classList.add('disabled');
 
@@ -239,9 +223,6 @@ div.disabled {
                 categoryChangeButton.classList.remove('disabled');
             });
         });
-
-        row.children[CategoryHeaderIndex].appendChild(document.createElement('br'));
-        row.children[CategoryHeaderIndex].appendChild(categoryChangeButton);
     }
 
     /**
@@ -256,25 +237,18 @@ div.disabled {
         modal.Title = 'Change category';
 
         // Add categories to modal
-        const categorySelect = document.createElement('select');
-        categorySelect.id = 'modal_select_category';
-        categorySelect.classList.add('form-select', 'mt-2');
+        modal.Body.appendFromString('<label for="modal_select_category">Select a new category:</label>');
+        
+        const categorySelect = modal.Body.appendFromString('<select id="modal_select_category" class="form-select mt-2"></select>');
 
         CATEGORIES.forEach(c => {
-            const option = document.createElement('option');
-            option.value = c;
-            option.text = c;
+            const option = categorySelect.appendFromString(`<option>${c}</option>`);
 
             if (category === c) {
                 option.selected = true;
                 option.disabled = true;
             }
-
-            categorySelect.appendChild(option);
         });
-
-        modal.Body.appendFromString('<label for="modal_select_category">Select a new category:</label>');
-        modal.Body.appendChild(categorySelect);
 
         // Assign close function to modal
         modal.OnClosed = onClosed;
@@ -326,19 +300,8 @@ div.disabled {
             const box = document.createElement('div');
             box.classList.add('form-check');
 
-            const label = document.createElement('label');
-            label.classList.add('form-check-label');
-            label.setAttribute('for', `modal_checkbox_category_${cat}`);
-            label.append(cat);
-
-            const checkbox = document.createElement('input');
-            checkbox.classList.add('form-check-input');
-            checkbox.type = 'checkbox';
-            checkbox.value = cat;
-            checkbox.id = `modal_checkbox_category_${cat}`;
-
-            box.appendChild(checkbox);
-            box.appendChild(label);
+            box.appendFromString(`<input class="form-check-input" type="checkbox" id="modal_checkbox_category_${cat}" value="${cat}">`);
+            box.appendFromString(`<label class="form-check-label" for="modal_checkbox_category_${cat}">${cat}</label>`);
 
             if (i < CATEGORIES.length / 2) {
                 categoriesContainerLeftCol.appendChild(box);
