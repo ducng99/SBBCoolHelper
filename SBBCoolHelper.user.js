@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         SBB Cool Helper
 // @namespace    maxhyt.SBBCoolHelper
-// @version      1.1.1.0
+// @version      1.1.2.0
 // @description  Add VIP features to SBB site
 // @license      AGPL-3.0-or-later
 // @copyright    2022. Thomas Nguyen
@@ -21,7 +21,6 @@
 .voteButton {
     display: inline-block;
     width: 1.3em;
-    height: 1.3em;
     cursor: pointer;
     margin-top: 0.2em;
     margin-left: 0.3em;
@@ -361,9 +360,19 @@ div.disabled {
 
         // Assign close function to modal
         modal.OnClosed = onClosed;
+        
+        // Add unlock button to modal
+        modal.AddButton('🔓 Unlock', () => {
+            const categories = [...modal.Body.querySelectorAll('#modal_categories_container input[type="checkbox"]:checked')].map(c => c.value);
+            const actionTypes = [...modal.Body.querySelectorAll('#modal_action_types_container input[type="checkbox"]:checked')].map(t => t.value);
+            
+            if (confirm('Confirm unlocking these categories?\n\n' + categories.join(', '))) {
+                SendUnlockCategories(videoID, categories, actionTypes, modal.CloseModal.bind(modal));
+            }
+        });
 
-        // Assign save function to modal
-        modal.AddButton('Lock', () => {
+        // Add lock button to modal
+        modal.AddButton('🔒 Lock', () => {
             // Bootstrap will clone the `categoriesContainer` and `actionTypesContainer` (I think), therefore we need to get the values by querying the body
             const categories = [...modal.Body.querySelectorAll('#modal_categories_container input[type="checkbox"]:checked')].map(c => c.value);
             const actionTypes = [...modal.Body.querySelectorAll('#modal_action_types_container input[type="checkbox"]:checked')].map(t => t.value);
@@ -373,21 +382,13 @@ div.disabled {
                 SendLockCategories(videoID, categories, actionTypes, reason, modal.CloseModal.bind(modal));
             }
         });
-        
-        modal.AddButton('Unlock', () => {
-            const categories = [...modal.Body.querySelectorAll('#modal_categories_container input[type="checkbox"]:checked')].map(c => c.value);
-            const actionTypes = [...modal.Body.querySelectorAll('#modal_action_types_container input[type="checkbox"]:checked')].map(t => t.value);
-            
-            if (confirm('Confirm unlocking these categories?\n\n' + categories.join(', '))) {
-                SendUnlockCategories(videoID, categories, actionTypes, modal.CloseModal.bind(modal));
-            }
-        });
     }
 
     /**
      * I'm crazy am I?
      */
     class Modal {
+        /** @type {bootstrap.Modal} */
         _bootstrapModal;
 
         /** @type {HTMLDivElement} */
