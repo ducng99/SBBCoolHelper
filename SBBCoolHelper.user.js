@@ -21,11 +21,12 @@
     /**
      * Append a new element to the DOM from a string
      * @param {string} elementInString string representation of an element
+     * @return {HTMLElement} the new element appended
      */
     HTMLElement.prototype.appendFromString = function (elementInString) {
         let tmpDOM = document.createElement('div');
         tmpDOM.innerHTML = elementInString;
-        this.appendChild(tmpDOM.firstChild);
+        return this.appendChild(tmpDOM.firstChild);
     }
 
     GM_addStyle(`
@@ -63,11 +64,13 @@ div.disabled {
     let IsStarted = false;
     let VoteHeaderIndex = -1;
     let CategoryHeaderIndex = -1;
+    
+    const DarkModeButton = document.body.querySelector('#darkmode');
 
     // Button to set User ID
     const userIDSetButton = document.createElement('button');
     userIDSetButton.classList.add('btn', 'me-2');
-    userIDSetButton.textContent = "Set UserID";
+    userIDSetButton.append("Set UserID");
     userIDSetButton.addEventListener('click', () => {
         const userID = prompt("Enter your private user ID:");
 
@@ -83,7 +86,7 @@ div.disabled {
             alert("Invalid user ID! Please try again.");
         }
     });
-    document.body.querySelector('nav > div').appendChild(userIDSetButton);
+    DarkModeButton.parentNode.appendChild(userIDSetButton);
 
     if (VerifyUserID(GM_getValue('userID'))) {
         userIDSetButton.classList.add('btn-secondary');
@@ -129,11 +132,11 @@ div.disabled {
         if (videoID) {
             const categoryLockButton = document.createElement('button');
             categoryLockButton.classList.add('btn', 'btn-warning', 'me-2');
-            categoryLockButton.textContent = '🔒';
+            categoryLockButton.append('🔒');
 
             categoryLockButton.addEventListener('click', () => ShowLockCategoriesModal(videoID));
 
-            document.body.querySelector('nav > div').insertBefore(categoryLockButton, document.body.querySelector('#darkmode'));
+            DarkModeButton.parentNode.insertBefore(categoryLockButton, DarkModeButton);
         }
     }
 
@@ -225,7 +228,7 @@ div.disabled {
         const categoryChangeButton = document.createElement('button');
         categoryChangeButton.classList.add('btn', 'btn-secondary', 'btn-sm', 'mt-1');
         categoryChangeButton.setAttribute('title', "Change this segment's category");
-        categoryChangeButton.textContent = '✏';
+        categoryChangeButton.append('✏');
         categoryChangeButton.addEventListener('click', () => {
             categoryChangeButton.classList.add('disabled');
 
@@ -313,7 +316,7 @@ div.disabled {
             const label = document.createElement('label');
             label.classList.add('form-check-label');
             label.setAttribute('for', `modal_checkbox_category_${cat}`);
-            label.textContent = cat;
+            label.append(cat);
 
             const checkbox = document.createElement('input');
             checkbox.classList.add('form-check-input');
@@ -336,7 +339,7 @@ div.disabled {
 
         const selectAllCategoriesButton = document.createElement('button');
         selectAllCategoriesButton.classList.add('btn', 'btn-secondary', 'btn-sm', 'my-1');
-        selectAllCategoriesButton.textContent = '(Un)Select all';
+        selectAllCategoriesButton.append('(Un)Select all');
         selectAllCategoriesButton.addEventListener('click', () => {
             const checkboxes = [...modal.Body.querySelectorAll('#modal_categories_container input[type="checkbox"]')];
 
@@ -367,7 +370,7 @@ div.disabled {
             const label = document.createElement('label');
             label.classList.add('form-check-label');
             label.setAttribute('for', `modal_checkbox_type_${type}`);
-            label.textContent = type;
+            label.append(type);
 
             const checkbox = document.createElement('input');
             checkbox.classList.add('form-check-input');
@@ -385,10 +388,8 @@ div.disabled {
         modal.Body.appendChild(actionTypesContainer);
 
         // Add reason to modal
-        const reasonTextarea = document.createElement('textarea');
-        reasonTextarea.style.width = '100%';
-        reasonTextarea.style.resize = 'vertical';
-        modal.Body.appendFromString('<h5>Reason:</h5>');
+        modal.Body.appendFromString('<h5 class="mt-3">Reason:</h5>');
+        const reasonTextarea = modal.Body.appendFromString('<textarea class="form-control" width="100%" style="resize: vertical"></textarea>');
         modal.Body.appendChild(reasonTextarea);
 
         // Assign close function to modal
@@ -479,7 +480,7 @@ div.disabled {
         AddButton(text, action) {
             const button = document.createElement('button');
             button.classList.add('btn', 'btn-primary');
-            button.textContent = text;
+            button.append(text);
             button.addEventListener('click', action);
 
             this._modal.querySelector('.modal-footer').appendChild(button);
@@ -489,7 +490,7 @@ div.disabled {
          * @param {string} title
          */
         set Title(title) {
-            this._title.textContent = title;
+            this._title.append(title);
         }
 
         /**
