@@ -581,7 +581,7 @@ div.disabled {
         else {
             GM_xmlhttpRequest({
                 method: 'POST',
-                url: `https://sponsor.ajay.app/api/voteSponsorTimeCategory?UUID=${uuid}&userID=${userID}&category=${category}`,
+                url: `https://sponsor.ajay.app/api/voteOnSponsorTime?UUID=${uuid}&userID=${userID}&category=${category}`,
                 responseType: 'json',
                 onload: function (response) {
                     switch (response.status) {
