@@ -170,8 +170,15 @@ div.disabled {
             if (!upvoteButton.classList.contains('disabled') && confirm('Confirm upvoting?')) {
                 const segmentId = row.querySelector('textarea[name="UUID"]')?.value;
                 DisableVoteButtons();
+                upvoteButton.classList.add('loading');
 
-                SendVoteSegment(segmentId, VOTE_SEG_OPTIONS.Up, EnableVoteButtons);
+                SendVoteSegment(segmentId, VOTE_SEG_OPTIONS.Up, () => {
+                    upvoteButton.classList.remove('disabled', 'loading');
+                    upvoteButton.style.color = 'green';
+                    downvoteButton.classList.remove('disabled');
+                    downvoteButton.style.color = '';
+                    undovoteButton.classList.remove('disabled');
+                });
             }
         });
 
@@ -190,19 +197,33 @@ div.disabled {
             if (!downvoteButton.classList.contains('disabled') && confirm('Confirm downvoting?')) {
                 const segmentId = row.querySelector('textarea[name="UUID"]')?.value;
                 DisableVoteButtons();
+                downvoteButton.classList.add('loading');
 
-                SendVoteSegment(segmentId, VOTE_SEG_OPTIONS.Down, EnableVoteButtons);
+                SendVoteSegment(segmentId, VOTE_SEG_OPTIONS.Down, () => {
+                    upvoteButton.classList.remove('disabled');
+                    upvoteButton.style.color = '';
+                    downvoteButton.classList.remove('disabled', 'loading');
+                    downvoteButton.style.color = 'red';
+                    undovoteButton.classList.remove('disabled');
+                });
             }
         });
 
         // Undo vote button
-        const undovoteButton = votingContainer.appendFromString(`<div class="voteButton" title="Undo vote on this segment">${ROTATE_LEFT_ICON}</div>`);
+        const undovoteButton = votingContainer.appendFromString(`<div class="voteButton disabled" title="Undo vote on this segment">${ROTATE_LEFT_ICON}</div>`);
         undovoteButton.addEventListener('click', () => {
             if (!undovoteButton.classList.contains('disabled') && confirm('Confirm undo vote?')) {
                 const segmentId = row.querySelector('textarea[name="UUID"]')?.value;
                 DisableVoteButtons();
+                undovoteButton.classList.add('loading');
 
-                SendVoteSegment(segmentId, VOTE_SEG_OPTIONS.Undo, EnableVoteButtons);
+                SendVoteSegment(segmentId, VOTE_SEG_OPTIONS.Undo, () => {
+                    upvoteButton.classList.remove('disabled');
+                    upvoteButton.style.color = '';
+                    downvoteButton.classList.remove('disabled');
+                    downvoteButton.style.color = '';
+                    undovoteButton.classList.remove('loading');
+                });
             }
         });
 
@@ -212,12 +233,6 @@ div.disabled {
             upvoteButton.classList.add('disabled');
             downvoteButton.classList.add('disabled');
             undovoteButton.classList.add('disabled');
-        }
-
-        function EnableVoteButtons() {
-            upvoteButton.classList.remove('disabled');
-            downvoteButton.classList.remove('disabled');
-            undovoteButton.classList.remove('disabled');
         }
     }
 
