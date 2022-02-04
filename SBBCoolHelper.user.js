@@ -300,7 +300,7 @@ div.disabled {
         modal.AddButton('Save changes', (button) => {
             if (confirm(`Confirm changing category from "${category}" to "${categorySelect.value}"?`)) {
                 button.classList.add('disabled');
-                const spinner = button.appendFromString('<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>');
+                const spinner = button.appendFromString('<span class="spinner-border spinner-border-sm ms-1" role="status" aria-hidden="true"></span>');
                 
                 SendCategoryUpdate(segmentId, categorySelect.value, modal.CloseModal.bind(modal), () => {
                     spinner.remove();
@@ -390,7 +390,7 @@ div.disabled {
             }
             else if (confirm('Confirm unlocking these categories?\n\n' + categories.join(', '))) {
                 button.classList.add('disabled');
-                const spinner = button.appendFromString('<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>');
+                const spinner = button.appendFromString('<span class="spinner-border spinner-border-sm ms-1" role="status" aria-hidden="true"></span>');
                 
                 SendUnlockCategories(videoID, categories, actionTypes, modal.CloseModal.bind(modal), () => {
                     spinner.remove();
@@ -411,7 +411,7 @@ div.disabled {
             }
             else if (confirm('Confirm locking these categories?\n\n' + categories.join(', '))) {
                 button.classList.add('disabled');
-                const spinner = button.appendFromString('<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>');
+                const spinner = button.appendFromString('<span class="spinner-border spinner-border-sm ms-1" role="status" aria-hidden="true"></span>');
                 
                 SendLockCategories(videoID, categories, actionTypes, reason, modal.CloseModal.bind(modal), () => {
                     spinner.remove();
