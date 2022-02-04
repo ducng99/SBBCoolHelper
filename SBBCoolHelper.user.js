@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         SBB Cool Helper
 // @namespace    maxhyt.SBBCoolHelper
-// @version      1.2.1.0
+// @version      1.2.2.0
 // @description  Add VIP features to SBB site
 // @license      AGPL-3.0-or-later
 // @copyright    2022. Thomas Nguyen
@@ -321,7 +321,7 @@ div.disabled {
         modal.Title = 'Lock/Unlock categories for ' + videoID;
 
         // Add categories to modal
-        modal.Body.appendFromString('<h5>Choose categories to (un)lock:</h5>');
+        modal.Body.appendFromString('<h5>Choose categories:</h5>');
 
         const selectAllCategoriesButton = modal.Body.appendFromString('<button class="btn btn-secondary btn-sm my-1">(Un)Select all</button>');
         selectAllCategoriesButton.addEventListener('click', () => {
@@ -361,7 +361,7 @@ div.disabled {
         });
 
         // Add action types to modal
-        modal.Body.appendFromString('<h5 class="mt-3">Choose action types to (un)lock:</h5>');
+        modal.Body.appendFromString('<h5 class="mt-3">Choose action types:</h5>');
 
         const actionTypesContainer = modal.Body.appendFromString('<div id="modal_action_types_container"></div>');
         ACTION_TYPES.forEach(type => {
