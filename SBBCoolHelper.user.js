@@ -71,7 +71,7 @@ div.disabled {
     };
 
     const CATEGORIES = ['sponsor', 'selfpromo', 'interaction', 'intro', 'outro', 'preview', 'music_offtopic', 'filler', 'poi_highlight', 'exclusive_access'];
-    const CATEGORIES_NAMES = ['Sponsor', 'Unpaid/Self promotion', 'Interaction reminder', 'Intermission/Intro animation', 'Endcards/Credits', 'Preview/Recap', 'Non-music', 'Filler/Tangent', 'Highlight', 'Exclusive Access'];
+    const CATEGORIES_NAMES = ['Sponsor', 'Unpaid/Self promotion', 'Interaction reminder', 'Intermission/Intro animation', 'Endcards/Credits', 'Preview/Recap', 'Music: Non-music', 'Filler Tangent', 'Highlight', 'Exclusive Access'];
     const ACTION_TYPES = ['skip', 'mute', 'full'];
 
     // Please give me enum JS 😢
@@ -181,6 +181,7 @@ div.disabled {
                 }, () => {
                     upvoteButton.classList.remove('disabled', 'loading');
                     downvoteButton.classList.remove('disabled');
+                    undovoteButton.classList.remove('disabled');
                 });
             }
         });
@@ -211,12 +212,13 @@ div.disabled {
                 }, () => {
                     upvoteButton.classList.remove('disabled');
                     downvoteButton.classList.remove('disabled', 'loading');
+                    undovoteButton.classList.remove('disabled');
                 });
             }
         });
 
         // Undo vote button
-        const undovoteButton = votingContainer.appendFromString(`<div class="voteButton disabled" title="Undo vote on this segment">${ROTATE_LEFT_ICON}</div>`);
+        const undovoteButton = votingContainer.appendFromString(`<div class="voteButton" title="Undo vote on this segment">${ROTATE_LEFT_ICON}</div>`);
         undovoteButton.addEventListener('click', () => {
             if (!undovoteButton.classList.contains('disabled') && confirm('Confirm undo vote?')) {
                 const segmentId = row.querySelector('textarea[name="UUID"]')?.value;
@@ -228,7 +230,7 @@ div.disabled {
                     upvoteButton.style.color = '';
                     downvoteButton.classList.remove('disabled');
                     downvoteButton.style.color = '';
-                    undovoteButton.classList.remove('loading');
+                    undovoteButton.classList.remove('disabled', 'loading');
                 }, () => {
                     upvoteButton.classList.remove('disabled');
                     downvoteButton.classList.remove('disabled');
