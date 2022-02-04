@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         SBB Cool Helper
 // @namespace    maxhyt.SBBCoolHelper
-// @version      1.2.2.0
+// @version      1.3.0.0
 // @description  Add VIP features to SBB site
 // @license      AGPL-3.0-or-later
 // @copyright    2022. Thomas Nguyen
@@ -313,7 +313,7 @@ div.disabled {
             if (confirm(`Confirm changing category from "${category}" to "${categorySelect.value}"?`)) {
                 button.classList.add('disabled');
                 const spinner = button.appendFromString('<span class="spinner-border spinner-border-sm ms-1" role="status" aria-hidden="true"></span>');
-                
+
                 SendCategoryUpdate(segmentId, categorySelect.value, modal.CloseModal.bind(modal), () => {
                     spinner.remove();
                     button.classList.remove('disabled');
@@ -393,7 +393,7 @@ div.disabled {
         modal.OnClosed = onClosed;
 
         // Add unlock button to modal
-        modal.AddButton('🔓 Unlock', (button) => {            
+        modal.AddButton('🔓 Unlock', (button) => {
             const categories = [...modal.Body.querySelectorAll('#modal_categories_container input[type="checkbox"]:checked')].map(c => c.value);
             const actionTypes = [...modal.Body.querySelectorAll('#modal_action_types_container input[type="checkbox"]:checked')].map(t => t.value);
 
@@ -403,7 +403,7 @@ div.disabled {
             else if (confirm('Confirm unlocking these categories?\n\n' + categories.join(', '))) {
                 button.classList.add('disabled');
                 const spinner = button.appendFromString('<span class="spinner-border spinner-border-sm ms-1" role="status" aria-hidden="true"></span>');
-                
+
                 SendUnlockCategories(videoID, categories, actionTypes, modal.CloseModal.bind(modal), () => {
                     spinner.remove();
                     button.classList.remove('disabled');
@@ -412,7 +412,7 @@ div.disabled {
         });
 
         // Add lock button to modal
-        modal.AddButton('🔒 Lock', () => {
+        modal.AddButton('🔒 Lock', (button) => {
             // Bootstrap will clone the `categoriesContainer` and `actionTypesContainer` (I think), therefore we need to get the values by querying the body
             const categories = [...modal.Body.querySelectorAll('#modal_categories_container input[type="checkbox"]:checked')].map(c => c.value);
             const actionTypes = [...modal.Body.querySelectorAll('#modal_action_types_container input[type="checkbox"]:checked')].map(t => t.value);
@@ -424,7 +424,7 @@ div.disabled {
             else if (confirm('Confirm locking these categories?\n\n' + categories.join(', '))) {
                 button.classList.add('disabled');
                 const spinner = button.appendFromString('<span class="spinner-border spinner-border-sm ms-1" role="status" aria-hidden="true"></span>');
-                
+
                 SendLockCategories(videoID, categories, actionTypes, reason, modal.CloseModal.bind(modal), () => {
                     spinner.remove();
                     button.classList.remove('disabled');
@@ -432,11 +432,11 @@ div.disabled {
             }
         });
     }
-    
+
     /**
      * Show a confirmation modal
      * @param {string} title modal's title
-     * @param {string} message modal's body element in string format
+     * @param {string} message modal's message
      * @param {Function|undefined} onAccept function to be called when user press Yes button
      * @param {Function|undefined} onDecline function to be called when user press No button
      * @returns the modal instance
@@ -562,7 +562,6 @@ div.disabled {
 
     /**
      * Send request to API for voting on segments
-     * TODO: replace alerts with something more user-friendly
      * @param {string} uuid
      * @param {VOTE_SEG_OPTIONS} voteID
      * @param {Function|undefined} onSuccess function to call when the request is successful
@@ -821,7 +820,7 @@ div.disabled {
             });
         }
     }
-    
+
     /**
      * Send request to remove all segments on a video
      * @param {string} videoID 
@@ -830,7 +829,7 @@ div.disabled {
      */
     function SendPurgeSegments(videoID, onSuccess, onError) {
         const userID = GM_getValue('userID');
-        
+
         if (!VerifyPrivateUserID(userID)) {
             ShowToast(`Invalid user ID: "${userID}"`, TOAST_TYPE.Warning);
 
