@@ -803,6 +803,57 @@ div.disabled {
             });
         }
     }
+    
+    /**
+     * Send request to remove all segments on a video
+     * @param {string} videoID 
+     * @param {Function|undefined} onSuccess function to call when the request is successful
+     * @param {Function|undefined} onError function to call when the request returns an error or there is an error with input
+     */
+    function SendPurgeSegments(videoID, onSuccess, onError) {
+        const userID = GM_getValue('userID');
+        
+        if (!VerifyPrivateUserID(userID)) {
+            ShowToast(`Invalid user ID: "${userID}"`, TOAST_TYPE.Warning);
+
+            if (onError) onError();
+        }
+        else {
+            GM_xmlhttpRequest({
+                method: 'POST',
+                url: 'https://sponsor.ajay.app/api/purgeAllSegments',
+                data: JSON.stringify({ videoID, userID }),
+                headers: { 'Content-Type': 'application/json' },
+                onload: function (response) {
+                    switch (response.status) {
+                        case 400:
+                            ShowToast('Failed to purge segments. Please check these info and your User ID\n\n' +
+                                'Video ID: ' + videoID,
+                                TOAST_TYPE.Danger);
+                            if (onError) onError();
+                            break;
+                        case 403:
+                            ShowToast('Purge is rejected. You are not a VIP', TOAST_TYPE.Danger);
+                            if (onError) onError();
+                            break;
+                        case 200:
+                            ShowToast('Purged all segments!');
+                            if (onSuccess) onSuccess();
+                            break;
+                        default:
+                            ShowToast('Failed to send the request, something might be wrong with the server.', TOAST_TYPE.Warning);
+                            if (onError) onError();
+                            break;
+                    }
+                },
+                onerror: function () {
+                    ShowToast('Failed to send the request, something might be wrong with the server or your internet is 💩.', TOAST_TYPE.Warning);
+
+                    if (onError) onError();
+                }
+            });
+        }
+    }
 
     // Utilities
     function VerifyUUID(uuid) {
