@@ -85,7 +85,7 @@ div.disabled {
     const DarkModeButton = document.body.querySelector('#darkmode');
 
     // Button to set User ID
-    const userIDSetButton = DarkModeButton.parentNode.appendFromString('<button class="btn me-2">Set UserID</button>');
+    const userIDSetButton = DarkModeButton.parentNode.appendFromString('<button class="btn me-2">👨‍💻 Set UserID</button>');
     userIDSetButton.addEventListener('click', () => {
         const userID = prompt("Enter your private user ID:");
 
@@ -136,7 +136,7 @@ div.disabled {
             AddCategoryChangeButtonToRow(row);
         });
 
-        // Add category lock button
+        // Add category lock & purge segments button
         let videoID = '';
         const youtubeURL = document.body.querySelector('li.list-group-item > a[href^="https://www.youtube.com"], li.list-group-item > a[href^="https://youtu.be"]')?.href;
         if (youtubeURL.includes('youtube.com')) {
@@ -147,13 +147,25 @@ div.disabled {
         }
 
         if (videoID) {
+            const navbarContainer = DarkModeButton.parentNode;
+
+            // Category lock button
             const categoryLockButton = document.createElement('button');
             categoryLockButton.classList.add('btn', 'btn-warning', 'me-2');
-            categoryLockButton.append('🔒');
-
+            categoryLockButton.append('🔒 Lock categories');
             categoryLockButton.addEventListener('click', () => ShowLockCategoriesModal(videoID));
 
-            DarkModeButton.parentNode.insertBefore(categoryLockButton, DarkModeButton);
+            navbarContainer.insertBefore(categoryLockButton, DarkModeButton);
+
+            // Purge segments button
+            const purgeSegmentsButton = document.createElement('button');
+            purgeSegmentsButton.classList.add('btn', 'btn-danger', 'me-2');
+            purgeSegmentsButton.append('🗑 Purge segments');
+            purgeSegmentsButton.addEventListener('click', () => ShowConfirmModal('Purge segments', `Are you sure you want to purge all segments on ${videoID}?`, () => {
+                SendPurgeSegments(videoID);
+            }));
+
+            navbarContainer.insertBefore(purgeSegmentsButton, DarkModeButton);
         }
     }
 
