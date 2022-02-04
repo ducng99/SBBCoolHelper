@@ -444,10 +444,16 @@ div.disabled {
     function ShowConfirmModal(title, message, onAccept, onDecline) {
         const modal = new Modal;
         modal.Title = title;
-        modal.Body.appendFromString(message);
-        modal.AddButton('Yes', onAccept);
-        modal.AddButton('No', onDecline);
-        
+        modal.Body.appendFromString(`<p>${message}</p>`);
+        modal.AddButton('Yes', () => {
+            if (onAccept) onAccept();
+            modal.CloseModal().bind(modal);
+        });
+        modal.AddButton('No', () => {
+            if (onDecline) onDecline();
+            modal.CloseModal().bind(modal);
+        });
+
         return modal;
     }
 
