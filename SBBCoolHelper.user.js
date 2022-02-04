@@ -420,6 +420,16 @@ div.disabled {
             }
         });
     }
+    
+    function ShowConfirmModal(title, message, onAccept, onDecline) {
+        const modal = new Modal;
+        modal.Title = title;
+        modal.Body.appendFromString(message);
+        modal.AddButton('Yes', onAccept);
+        modal.AddButton('No', onDecline);
+        
+        return modal;
+    }
 
     /**
      * I'm crazy am I?
