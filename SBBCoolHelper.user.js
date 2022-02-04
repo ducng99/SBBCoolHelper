@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         SBB Cool Helper
 // @namespace    maxhyt.SBBCoolHelper
-// @version      1.2.0.0
+// @version      1.2.1.0
 // @description  Add VIP features to SBB site
 // @license      AGPL-3.0-or-later
 // @copyright    2022. Thomas Nguyen
@@ -71,7 +71,7 @@ div.disabled {
     };
 
     const CATEGORIES = ['sponsor', 'selfpromo', 'interaction', 'intro', 'outro', 'preview', 'music_offtopic', 'filler', 'poi_highlight', 'exclusive_access'];
-    const CATEGORIES_NAMES = ['Sponsor', 'Unpaid/Self promotion', 'Interaction reminder', 'Intermission/Intro animation', 'Endcards/Credits', 'Preview/Recap', 'Non-music', 'Filler/Tangent', 'Highlight', 'Exclusive Access'];
+    const CATEGORIES_NAMES = ['Sponsor', 'Unpaid/Self promotion', 'Interaction reminder', 'Intermission/Intro animation', 'Endcards/Credits', 'Preview/Recap', 'Music: Non-music', 'Filler Tangent', 'Highlight', 'Exclusive Access'];
     const ACTION_TYPES = ['skip', 'mute', 'full'];
 
     // Please give me enum JS 😢
@@ -178,6 +178,10 @@ div.disabled {
                     downvoteButton.classList.remove('disabled');
                     downvoteButton.style.color = '';
                     undovoteButton.classList.remove('disabled');
+                }, () => {
+                    upvoteButton.classList.remove('disabled', 'loading');
+                    downvoteButton.classList.remove('disabled');
+                    undovoteButton.classList.remove('disabled');
                 });
             }
         });
@@ -205,12 +209,16 @@ div.disabled {
                     downvoteButton.classList.remove('disabled', 'loading');
                     downvoteButton.style.color = 'red';
                     undovoteButton.classList.remove('disabled');
+                }, () => {
+                    upvoteButton.classList.remove('disabled');
+                    downvoteButton.classList.remove('disabled', 'loading');
+                    undovoteButton.classList.remove('disabled');
                 });
             }
         });
 
         // Undo vote button
-        const undovoteButton = votingContainer.appendFromString(`<div class="voteButton disabled" title="Undo vote on this segment">${ROTATE_LEFT_ICON}</div>`);
+        const undovoteButton = votingContainer.appendFromString(`<div class="voteButton" title="Undo vote on this segment">${ROTATE_LEFT_ICON}</div>`);
         undovoteButton.addEventListener('click', () => {
             if (!undovoteButton.classList.contains('disabled') && confirm('Confirm undo vote?')) {
                 const segmentId = row.querySelector('textarea[name="UUID"]')?.value;
@@ -222,6 +230,10 @@ div.disabled {
                     upvoteButton.style.color = '';
                     downvoteButton.classList.remove('disabled');
                     downvoteButton.style.color = '';
+                    undovoteButton.classList.remove('disabled', 'loading');
+                }, () => {
+                    upvoteButton.classList.remove('disabled');
+                    downvoteButton.classList.remove('disabled');
                     undovoteButton.classList.remove('loading');
                 });
             }
@@ -285,9 +297,15 @@ div.disabled {
         modal.OnClosed = onClosed;
 
         // Assign save function to modal
-        modal.AddButton('Save changes', () => {
+        modal.AddButton('Save changes', (button) => {
             if (confirm(`Confirm changing category from "${category}" to "${categorySelect.value}"?`)) {
-                SendCategoryUpdate(segmentId, categorySelect.value, modal.CloseModal);
+                button.classList.add('disabled');
+                const spinner = button.appendFromString('<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>');
+                
+                SendCategoryUpdate(segmentId, categorySelect.value, modal.CloseModal.bind(modal), () => {
+                    spinner.remove();
+                    button.classList.remove('disabled');
+                });
             }
         });
     }
@@ -363,7 +381,7 @@ div.disabled {
         modal.OnClosed = onClosed;
 
         // Add unlock button to modal
-        modal.AddButton('🔓 Unlock', () => {
+        modal.AddButton('🔓 Unlock', (button) => {            
             const categories = [...modal.Body.querySelectorAll('#modal_categories_container input[type="checkbox"]:checked')].map(c => c.value);
             const actionTypes = [...modal.Body.querySelectorAll('#modal_action_types_container input[type="checkbox"]:checked')].map(t => t.value);
 
@@ -371,7 +389,13 @@ div.disabled {
                 ShowToast('Please select at least one category and action type to unlock.', TOAST_TYPE.Warning);
             }
             else if (confirm('Confirm unlocking these categories?\n\n' + categories.join(', '))) {
-                SendUnlockCategories(videoID, categories, actionTypes, modal.CloseModal.bind(modal));
+                button.classList.add('disabled');
+                const spinner = button.appendFromString('<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>');
+                
+                SendUnlockCategories(videoID, categories, actionTypes, modal.CloseModal.bind(modal), () => {
+                    spinner.remove();
+                    button.classList.remove('disabled');
+                });
             }
         });
 
@@ -386,7 +410,13 @@ div.disabled {
                 ShowToast('Please select at least one category and action type to lock.', TOAST_TYPE.Warning);
             }
             else if (confirm('Confirm locking these categories?\n\n' + categories.join(', '))) {
-                SendLockCategories(videoID, categories, actionTypes, reason, modal.CloseModal.bind(modal));
+                button.classList.add('disabled');
+                const spinner = button.appendFromString('<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>');
+                
+                SendLockCategories(videoID, categories, actionTypes, reason, modal.CloseModal.bind(modal), () => {
+                    spinner.remove();
+                    button.classList.remove('disabled');
+                });
             }
         });
     }
@@ -442,11 +472,11 @@ div.disabled {
         /**
          * Add a button at the bottom of the modal (primary buttons)
          * @param {string} text Button text
-         * @param {(this: HTMLButtonElement, ev: MouseEvent) => any} action Action to perform when button is clicked
+         * @param {(button: HTMLButtonElement) => any} action Action to perform when button is clicked
          */
         AddButton(text, action) {
             const button = this._modal.querySelector('.modal-footer').appendFromString(`<button type="button" class="btn btn-primary">${text}</button>`);
-            button.addEventListener('click', action);
+            button.addEventListener('click', () => action(button));
         }
 
         /**
@@ -499,25 +529,26 @@ div.disabled {
      * TODO: replace alerts with something more user-friendly
      * @param {string} uuid
      * @param {VOTE_SEG_OPTIONS} voteID
-     * @param {Function|undefined} onFinish function to call when the request is finished (both success or fail)
+     * @param {Function|undefined} onSuccess function to call when the request is successful
+     * @param {Function|undefined} onError function to call when the request returns an error or there is an error with input
     */
-    function SendVoteSegment(uuid, voteID, onFinish) {
+    function SendVoteSegment(uuid, voteID, onSuccess, onError) {
         const userID = GM_getValue('userID');
 
         if (!VerifyUUID(uuid)) {
             ShowToast(`Invalid segment ID: "${uuid}"`, TOAST_TYPE.Warning);
 
-            if (onFinish) onFinish();
+            if (onError) onError();
         }
         else if (Object.values(VOTE_SEG_OPTIONS).indexOf(voteID) === -1) {
             ShowToast(`Invalid vote ID: "${voteID}"`, TOAST_TYPE.Warning);
 
-            if (onFinish) onFinish();
+            if (onError) onError();
         }
         else if (!VerifyPrivateUserID(userID)) {
             ShowToast(`Invalid user ID: "${userID}"`, TOAST_TYPE.Warning);
 
-            if (onFinish) onFinish();
+            if (onError) onError();
         }
         else {
             GM_xmlhttpRequest({
@@ -528,27 +559,29 @@ div.disabled {
                     switch (response.status) {
                         case 403:
                             ShowToast('Vote is rejected\n\n' + response.response.message, TOAST_TYPE.Danger);
+                            if (onError) onError();
                             break;
                         case 400:
                             ShowToast('Failed to vote on the segment. Please check the segment info and your User ID\n\n' +
                                 'UUID: ' + uuid + '\n' +
                                 'Type: ' + voteID,
                                 TOAST_TYPE.Danger);
+                            if (onError) onError();
                             break;
                         case 200:
                             ShowToast('Voted!');
+                            if (onSuccess) onSuccess();
                             break;
                         default:
                             ShowToast('Failed to send the request, something might be wrong with the server.', TOAST_TYPE.Warning);
+                            if (onError) onError();
                             break;
                     }
-
-                    if (onFinish) onFinish();
                 },
                 onerror: function () {
                     ShowToast('Failed to send the request, something might be wrong with the server or your internet is 💩.', TOAST_TYPE.Warning);
 
-                    if (onFinish) onFinish();
+                    if (onError) onError();
                 }
             });
         }
@@ -558,25 +591,26 @@ div.disabled {
      * Update category of a segment
      * @param {string} uuid segment UUID
      * @param {string} category the new category of the segment
-     * @param {Function|undefined} onFinish function to call when the request is finished (both success or fail)
+     * @param {Function|undefined} onSuccess function to call when the request is successful
+     * @param {Function|undefined} onError function to call when the request returns an error or there is an error with input
      */
-    function SendCategoryUpdate(uuid, category, onFinish) {
+    function SendCategoryUpdate(uuid, category, onSuccess, onError) {
         const userID = GM_getValue('userID');
 
         if (!VerifyUUID(uuid)) {
             ShowToast(`Invalid segment ID: "${uuid}"`, TOAST_TYPE.Warning);
 
-            if (onFinish) onFinish();
+            if (onError) onError();
         }
         else if (CATEGORIES.indexOf(category) === -1) {
             ShowToast(`Invalid category name: "${category}"`, TOAST_TYPE.Warning);
 
-            if (onFinish) onFinish();
+            if (onError) onError();
         }
         else if (!VerifyPrivateUserID(userID)) {
             ShowToast(`Invalid user ID: "${userID}"`, TOAST_TYPE.Warning);
 
-            if (onFinish) onFinish();
+            if (onError) onError();
         }
         else {
             GM_xmlhttpRequest({
@@ -587,27 +621,29 @@ div.disabled {
                     switch (response.status) {
                         case 403:
                             ShowToast('Update is rejected\n\n' + response.response.message, TOAST_TYPE.Danger);
+                            if (onError) onError();
                             break;
                         case 400:
                             ShowToast('Failed to update the category. Please check the segment info and your User ID\n\n' +
                                 'UUID: ' + uuid + '\n' +
                                 'Category: ' + category,
                                 TOAST_TYPE.Danger);
+                            if (onError) onError();
                             break;
                         case 200:
                             ShowToast('Updated!');
+                            if (onSuccess) onSuccess();
                             break;
                         default:
                             ShowToast('Failed to send the request, something might be wrong with the server.', TOAST_TYPE.Warning);
+                            if (onError) onError();
                             break;
                     }
-
-                    if (onFinish) onFinish();
                 },
                 onerror: function () {
                     ShowToast('Failed to send the request, something might be wrong with the server or your internet is 💩.', TOAST_TYPE.Warning);
 
-                    if (onFinish) onFinish();
+                    if (onError) onError();
                 }
             });
         }
@@ -619,9 +655,10 @@ div.disabled {
      * @param {string[]} categories an array of categories being locked
      * @param {string[]} actionTypes an array of action types being locked
      * @param {string} reason why these categories are locked
-     * @param {Function|undefined} onFinish function to call when the request is finished (both success or fail)
+     * @param {Function|undefined} onSuccess function to call when the request is successful
+     * @param {Function|undefined} onError function to call when the request returns an error or there is an error with input
      */
-    function SendLockCategories(videoID, categories, actionTypes, reason, onFinish) {
+    function SendLockCategories(videoID, categories, actionTypes, reason, onSuccess, onError) {
         const userID = GM_getValue('userID');
         const invalidCategories = categories.filter(c => CATEGORIES.indexOf(c) === -1);
         const invalidActionTypes = actionTypes.filter(t => ACTION_TYPES.indexOf(t) === -1);
@@ -629,17 +666,17 @@ div.disabled {
         if (!VerifyPrivateUserID(userID)) {
             ShowToast(`Invalid user ID: "${userID}"`, TOAST_TYPE.Warning);
 
-            if (onFinish) onFinish();
+            if (onError) onError();
         }
         else if (invalidCategories.length > 0) {
             ShowToast('Invalid categories: ' + invalidCategories.join(', '), TOAST_TYPE.Warning);
 
-            if (onFinish) onFinish();
+            if (onError) onError();
         }
         else if (invalidActionTypes.length > 0) {
             ShowToast('Invalid action types: ' + invalidActionTypes.join(', '), TOAST_TYPE.Warning);
 
-            if (onFinish) onFinish();
+            if (onError) onError();
         }
         else {
             GM_xmlhttpRequest({
@@ -656,24 +693,26 @@ div.disabled {
                                 'Action types: ' + actionTypes.join(', ') + '\n' +
                                 'Reason: ' + reason,
                                 TOAST_TYPE.Danger);
+                            if (onError) onError();
                             break;
                         case 403:
                             ShowToast('Lock is rejected. You are not a VIP', TOAST_TYPE.Danger);
+                            if (onError) onError();
                             break;
                         case 200:
                             ShowToast('Locked!');
+                            if (onSuccess) onSuccess();
                             break;
                         default:
                             ShowToast('Failed to send the request, something might be wrong with the server.', TOAST_TYPE.Warning);
+                            if (onError) onError();
                             break;
                     }
-
-                    if (onFinish) onFinish();
                 },
                 onerror: function () {
                     ShowToast('Failed to send the request, something might be wrong with the server or your internet is 💩.', TOAST_TYPE.Warning);
 
-                    if (onFinish) onFinish();
+                    if (onError) onError();
                 }
             });
         }
@@ -684,9 +723,10 @@ div.disabled {
      * @param {string} videoID 
      * @param {string[]} categories an array of categories being locked
      * @param {string[]} actionTypes an array of action types being locked
-     * @param {Function|undefined} onFinish function to call when the request is finished (both success or fail)
+     * @param {Function|undefined} onSuccess function to call when the request is successful
+     * @param {Function|undefined} onError function to call when the request returns an error or there is an error with input
      */
-    function SendUnlockCategories(videoID, categories, actionTypes, onFinish) {
+    function SendUnlockCategories(videoID, categories, actionTypes, onSuccess, onError) {
         const userID = GM_getValue('userID');
         const invalidCategories = categories.filter(c => CATEGORIES.indexOf(c) === -1);
         const invalidActionTypes = actionTypes.filter(t => ACTION_TYPES.indexOf(t) === -1);
@@ -694,17 +734,17 @@ div.disabled {
         if (!VerifyPrivateUserID(userID)) {
             ShowToast(`Invalid user ID: "${userID}"`, TOAST_TYPE.Warning);
 
-            if (onFinish) onFinish();
+            if (onError) onError();
         }
         else if (invalidCategories.length > 0) {
             ShowToast('Invalid categories: ' + invalidCategories.join(', '), TOAST_TYPE.Warning);
 
-            if (onFinish) onFinish();
+            if (onError) onError();
         }
         else if (invalidActionTypes.length > 0) {
             ShowToast('Invalid action types: ' + invalidActionTypes.join(', '), TOAST_TYPE.Warning);
 
-            if (onFinish) onFinish();
+            if (onError) onError();
         }
         else {
             GM_xmlhttpRequest({
@@ -721,24 +761,26 @@ div.disabled {
                                 'Categories: ' + categories.join(', ') + '\n' +
                                 'Action types: ' + actionTypes.join(', '),
                                 TOAST_TYPE.Danger);
+                            if (onError) onError();
                             break;
                         case 403:
                             ShowToast('Unlock is rejected. You are not a VIP', TOAST_TYPE.Danger);
+                            if (onError) onError();
                             break;
                         case 200:
                             ShowToast(response.response.message);
+                            if (onSuccess) onSuccess();
                             break;
                         default:
                             ShowToast('Failed to send the request, something might be wrong with the server.', TOAST_TYPE.Warning);
+                            if (onError) onError();
                             break;
                     }
-
-                    if (onFinish) onFinish();
                 },
                 onerror: function () {
                     ShowToast('Failed to send the request, something might be wrong with the server or your internet is 💩.', TOAST_TYPE.Warning);
 
-                    if (onFinish) onFinish();
+                    if (onError) onError();
                 }
             });
         }
