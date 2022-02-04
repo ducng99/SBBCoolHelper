@@ -421,6 +421,14 @@ div.disabled {
         });
     }
     
+    /**
+     * Show a confirmation modal
+     * @param {string} title modal's title
+     * @param {string} message modal's body element in string format
+     * @param {Function|undefined} onAccept function to be called when user press Yes button
+     * @param {Function|undefined} onDecline function to be called when user press No button
+     * @returns the modal instance
+     */
     function ShowConfirmModal(title, message, onAccept, onDecline) {
         const modal = new Modal;
         modal.Title = title;
