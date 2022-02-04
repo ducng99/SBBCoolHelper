@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         SBB Cool Helper
 // @namespace    maxhyt.SBBCoolHelper
-// @version      1.2.2.0
+// @version      1.3.0.0
 // @description  Add VIP features to SBB site
 // @license      AGPL-3.0-or-later
 // @copyright    2022. Thomas Nguyen
@@ -85,7 +85,7 @@ div.disabled {
     const DarkModeButton = document.body.querySelector('#darkmode');
 
     // Button to set User ID
-    const userIDSetButton = DarkModeButton.parentNode.appendFromString('<button class="btn me-2">Set UserID</button>');
+    const userIDSetButton = DarkModeButton.parentNode.appendFromString('<button class="btn me-2">👨‍💻 Set UserID</button>');
     userIDSetButton.addEventListener('click', () => {
         const userID = prompt("Enter your private user ID:");
 
@@ -136,7 +136,7 @@ div.disabled {
             AddCategoryChangeButtonToRow(row);
         });
 
-        // Add category lock button
+        // Add category lock & purge segments button
         let videoID = '';
         const youtubeURL = document.body.querySelector('li.list-group-item > a[href^="https://www.youtube.com"], li.list-group-item > a[href^="https://youtu.be"]')?.href;
         if (youtubeURL.includes('youtube.com')) {
@@ -147,13 +147,25 @@ div.disabled {
         }
 
         if (videoID) {
+            const navbarContainer = DarkModeButton.parentNode;
+
+            // Category lock button
             const categoryLockButton = document.createElement('button');
             categoryLockButton.classList.add('btn', 'btn-warning', 'me-2');
-            categoryLockButton.append('🔒');
-
+            categoryLockButton.append('🔒 Lock categories');
             categoryLockButton.addEventListener('click', () => ShowLockCategoriesModal(videoID));
 
-            DarkModeButton.parentNode.insertBefore(categoryLockButton, DarkModeButton);
+            navbarContainer.insertBefore(categoryLockButton, DarkModeButton);
+
+            // Purge segments button
+            const purgeSegmentsButton = document.createElement('button');
+            purgeSegmentsButton.classList.add('btn', 'btn-danger', 'me-2');
+            purgeSegmentsButton.append('🗑 Purge segments');
+            purgeSegmentsButton.addEventListener('click', () => ShowConfirmModal('Purge segments', `Are you sure you want to purge all segments on ${videoID}?`, () => {
+                SendPurgeSegments(videoID);
+            }));
+
+            navbarContainer.insertBefore(purgeSegmentsButton, DarkModeButton);
         }
     }
 
@@ -300,8 +312,8 @@ div.disabled {
         modal.AddButton('Save changes', (button) => {
             if (confirm(`Confirm changing category from "${category}" to "${categorySelect.value}"?`)) {
                 button.classList.add('disabled');
-                const spinner = button.appendFromString('<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>');
-                
+                const spinner = button.appendFromString('<span class="spinner-border spinner-border-sm ms-1" role="status" aria-hidden="true"></span>');
+
                 SendCategoryUpdate(segmentId, categorySelect.value, modal.CloseModal.bind(modal), () => {
                     spinner.remove();
                     button.classList.remove('disabled');
@@ -381,7 +393,7 @@ div.disabled {
         modal.OnClosed = onClosed;
 
         // Add unlock button to modal
-        modal.AddButton('🔓 Unlock', (button) => {            
+        modal.AddButton('🔓 Unlock', (button) => {
             const categories = [...modal.Body.querySelectorAll('#modal_categories_container input[type="checkbox"]:checked')].map(c => c.value);
             const actionTypes = [...modal.Body.querySelectorAll('#modal_action_types_container input[type="checkbox"]:checked')].map(t => t.value);
 
@@ -390,8 +402,8 @@ div.disabled {
             }
             else if (confirm('Confirm unlocking these categories?\n\n' + categories.join(', '))) {
                 button.classList.add('disabled');
-                const spinner = button.appendFromString('<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>');
-                
+                const spinner = button.appendFromString('<span class="spinner-border spinner-border-sm ms-1" role="status" aria-hidden="true"></span>');
+
                 SendUnlockCategories(videoID, categories, actionTypes, modal.CloseModal.bind(modal), () => {
                     spinner.remove();
                     button.classList.remove('disabled');
@@ -400,7 +412,7 @@ div.disabled {
         });
 
         // Add lock button to modal
-        modal.AddButton('🔒 Lock', () => {
+        modal.AddButton('🔒 Lock', (button) => {
             // Bootstrap will clone the `categoriesContainer` and `actionTypesContainer` (I think), therefore we need to get the values by querying the body
             const categories = [...modal.Body.querySelectorAll('#modal_categories_container input[type="checkbox"]:checked')].map(c => c.value);
             const actionTypes = [...modal.Body.querySelectorAll('#modal_action_types_container input[type="checkbox"]:checked')].map(t => t.value);
@@ -411,14 +423,38 @@ div.disabled {
             }
             else if (confirm('Confirm locking these categories?\n\n' + categories.join(', '))) {
                 button.classList.add('disabled');
-                const spinner = button.appendFromString('<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>');
-                
+                const spinner = button.appendFromString('<span class="spinner-border spinner-border-sm ms-1" role="status" aria-hidden="true"></span>');
+
                 SendLockCategories(videoID, categories, actionTypes, reason, modal.CloseModal.bind(modal), () => {
                     spinner.remove();
                     button.classList.remove('disabled');
                 });
             }
         });
+    }
+
+    /**
+     * Show a confirmation modal
+     * @param {string} title modal's title
+     * @param {string} message modal's message
+     * @param {Function|undefined} onAccept function to be called when user press Yes button
+     * @param {Function|undefined} onDecline function to be called when user press No button
+     * @returns the modal instance
+     */
+    function ShowConfirmModal(title, message, onAccept, onDecline) {
+        const modal = new Modal;
+        modal.Title = title;
+        modal.Body.appendFromString(`<p>${message}</p>`);
+        modal.AddButton('Yes', () => {
+            if (onAccept) onAccept();
+            modal.CloseModal().bind(modal);
+        });
+        modal.AddButton('No', () => {
+            if (onDecline) onDecline();
+            modal.CloseModal().bind(modal);
+        });
+
+        return modal;
     }
 
     /**
@@ -526,7 +562,6 @@ div.disabled {
 
     /**
      * Send request to API for voting on segments
-     * TODO: replace alerts with something more user-friendly
      * @param {string} uuid
      * @param {VOTE_SEG_OPTIONS} voteID
      * @param {Function|undefined} onSuccess function to call when the request is successful
@@ -769,6 +804,57 @@ div.disabled {
                             break;
                         case 200:
                             ShowToast(response.response.message);
+                            if (onSuccess) onSuccess();
+                            break;
+                        default:
+                            ShowToast('Failed to send the request, something might be wrong with the server.', TOAST_TYPE.Warning);
+                            if (onError) onError();
+                            break;
+                    }
+                },
+                onerror: function () {
+                    ShowToast('Failed to send the request, something might be wrong with the server or your internet is 💩.', TOAST_TYPE.Warning);
+
+                    if (onError) onError();
+                }
+            });
+        }
+    }
+
+    /**
+     * Send request to remove all segments on a video
+     * @param {string} videoID 
+     * @param {Function|undefined} onSuccess function to call when the request is successful
+     * @param {Function|undefined} onError function to call when the request returns an error or there is an error with input
+     */
+    function SendPurgeSegments(videoID, onSuccess, onError) {
+        const userID = GM_getValue('userID');
+
+        if (!VerifyPrivateUserID(userID)) {
+            ShowToast(`Invalid user ID: "${userID}"`, TOAST_TYPE.Warning);
+
+            if (onError) onError();
+        }
+        else {
+            GM_xmlhttpRequest({
+                method: 'POST',
+                url: 'https://sponsor.ajay.app/api/purgeAllSegments',
+                data: JSON.stringify({ videoID, userID }),
+                headers: { 'Content-Type': 'application/json' },
+                onload: function (response) {
+                    switch (response.status) {
+                        case 400:
+                            ShowToast('Failed to purge segments. Please check these info and your User ID\n\n' +
+                                'Video ID: ' + videoID,
+                                TOAST_TYPE.Danger);
+                            if (onError) onError();
+                            break;
+                        case 403:
+                            ShowToast('Purge is rejected. You are not a VIP', TOAST_TYPE.Danger);
+                            if (onError) onError();
+                            break;
+                        case 200:
+                            ShowToast('Purged all segments!');
                             if (onSuccess) onSuccess();
                             break;
                         default:
