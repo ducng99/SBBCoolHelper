@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         SBB Cool Helper
 // @namespace    maxhyt.SBBCoolHelper
-// @version      1.3.1.0
+// @version      1.3.2.0
 // @description  Add VIP features to SBB site
 // @license      AGPL-3.0-or-later
 // @copyright    2022. Thomas Nguyen
@@ -161,9 +161,14 @@ div.disabled {
             const purgeSegmentsButton = document.createElement('button');
             purgeSegmentsButton.classList.add('btn', 'btn-danger', 'me-2');
             purgeSegmentsButton.append('🗑 Purge segments');
-            purgeSegmentsButton.addEventListener('click', () => ShowConfirmModal('Purge segments', `Are you sure you want to purge all segments on ${videoID}?`, () => {
-                SendPurgeSegments(videoID);
-            }));
+            purgeSegmentsButton.addEventListener('click', () => {
+                const [_, acceptButton, declineButton] = ShowConfirmModal('Purge segments', `Are you sure you want to purge all segments on ${videoID}?`, () => {
+                    SendPurgeSegments(videoID);
+                });
+
+                acceptButton.classList.add('btn-danger');
+                declineButton.classList.add('btn-secondary');
+            });
 
             navbarContainer.insertBefore(purgeSegmentsButton, DarkModeButton);
         }
@@ -439,22 +444,23 @@ div.disabled {
      * @param {string} message modal's message
      * @param {Function|undefined} onAccept function to be called when user press Yes button
      * @param {Function|undefined} onDecline function to be called when user press No button
-     * @returns the modal instance
+     * @returns {[Modal, HTMLButtonElement, HTMLButtonElement]} the modal instance, accept and decline buttons
      */
     function ShowConfirmModal(title, message, onAccept, onDecline) {
         const modal = new Modal;
         modal.Title = title;
         modal.Body.appendFromString(`<p>${message}</p>`);
-        modal.AddButton('Yes', () => {
+
+        const acceptButton = modal.AddButton('Yes', () => {
             if (onAccept) onAccept();
             modal.CloseModal().bind(modal);
         });
-        modal.AddButton('No', () => {
+        const declineButton = modal.AddButton('No', () => {
             if (onDecline) onDecline();
             modal.CloseModal().bind(modal);
         });
 
-        return modal;
+        return [modal, acceptButton, declineButton];
     }
 
     /**
@@ -509,10 +515,12 @@ div.disabled {
          * Add a button at the bottom of the modal (primary buttons)
          * @param {string} text Button text
          * @param {(button: HTMLButtonElement) => any} action Action to perform when button is clicked
+         * @return {HTMLButtonElement} The button element
          */
         AddButton(text, action) {
             const button = this._modal.querySelector('.modal-footer').appendFromString(`<button type="button" class="btn btn-primary">${text}</button>`);
             button.addEventListener('click', () => action(button));
+            return button;
         }
 
         /**
