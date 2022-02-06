@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         SBB Cool Helper
 // @namespace    maxhyt.SBBCoolHelper
-// @version      1.3.0.0
+// @version      1.3.1.0
 // @description  Add VIP features to SBB site
 // @license      AGPL-3.0-or-later
 // @copyright    2022. Thomas Nguyen
@@ -17,13 +17,13 @@
 (function () {
     'use strict';
 
-    // Extensions    
+    // Extensions
     /**
      * Append a new element to the DOM from a string
      * @param {string} elementInString string representation of an element
-     * @return {HTMLElement} the new element appended
+     * @return {Element} the new element appended
      */
-    HTMLElement.prototype.appendFromString = function (elementInString) {
+    Element.prototype.appendFromString = function (elementInString) {
         let tmpDOM = document.createElement('div');
         tmpDOM.innerHTML = elementInString;
         return this.appendChild(tmpDOM.firstChild);
@@ -171,7 +171,7 @@ div.disabled {
 
     /**
      * Add upvote, downvote and undo vote buttons to segment row
-     * @param {HTMLElement} row 
+     * @param {Element} row 
      */
     function AddVotingButtonsToRow(row) {
         const votingContainer = row.children[VoteHeaderIndex].appendFromString('<div></div>');
@@ -185,15 +185,13 @@ div.disabled {
                 upvoteButton.classList.add('loading');
 
                 SendVoteSegment(segmentId, VOTE_SEG_OPTIONS.Up, () => {
-                    upvoteButton.classList.remove('disabled', 'loading');
+                    EnableVoteButtons();
+                    upvoteButton.classList.remove('loading');
                     upvoteButton.style.color = 'green';
-                    downvoteButton.classList.remove('disabled');
                     downvoteButton.style.color = '';
-                    undovoteButton.classList.remove('disabled');
                 }, () => {
-                    upvoteButton.classList.remove('disabled', 'loading');
-                    downvoteButton.classList.remove('disabled');
-                    undovoteButton.classList.remove('disabled');
+                    EnableVoteButtons();
+                    upvoteButton.classList.remove('loading');
                 });
             }
         });
@@ -216,15 +214,13 @@ div.disabled {
                 downvoteButton.classList.add('loading');
 
                 SendVoteSegment(segmentId, VOTE_SEG_OPTIONS.Down, () => {
-                    upvoteButton.classList.remove('disabled');
+                    EnableVoteButtons();
                     upvoteButton.style.color = '';
-                    downvoteButton.classList.remove('disabled', 'loading');
+                    downvoteButton.classList.remove('loading');
                     downvoteButton.style.color = 'red';
-                    undovoteButton.classList.remove('disabled');
                 }, () => {
-                    upvoteButton.classList.remove('disabled');
-                    downvoteButton.classList.remove('disabled', 'loading');
-                    undovoteButton.classList.remove('disabled');
+                    EnableVoteButtons();
+                    downvoteButton.classList.remove('loading');
                 });
             }
         });
@@ -238,14 +234,12 @@ div.disabled {
                 undovoteButton.classList.add('loading');
 
                 SendVoteSegment(segmentId, VOTE_SEG_OPTIONS.Undo, () => {
-                    upvoteButton.classList.remove('disabled');
+                    EnableVoteButtons();
                     upvoteButton.style.color = '';
-                    downvoteButton.classList.remove('disabled');
                     downvoteButton.style.color = '';
-                    undovoteButton.classList.remove('disabled', 'loading');
+                    undovoteButton.classList.remove('loading');
                 }, () => {
-                    upvoteButton.classList.remove('disabled');
-                    downvoteButton.classList.remove('disabled');
+                    EnableVoteButtons();
                     undovoteButton.classList.remove('loading');
                 });
             }
@@ -257,6 +251,12 @@ div.disabled {
             upvoteButton.classList.add('disabled');
             downvoteButton.classList.add('disabled');
             undovoteButton.classList.add('disabled');
+        }
+
+        function EnableVoteButtons() {
+            upvoteButton.classList.remove('disabled');
+            downvoteButton.classList.remove('disabled');
+            undovoteButton.classList.remove('disabled');
         }
     }
 
