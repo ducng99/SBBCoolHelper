@@ -113,7 +113,7 @@ div.disabled {
 
         if (publicUserID && username && isVIP) {
             UpdateSetUserIDButton(username, isVIP);
-            Main();
+            if (!IsStarted) Main();
         }
         else {
             SendGetUserInfo((info) => {
@@ -176,41 +176,44 @@ div.disabled {
             AddCategoryChangeButtonToRow(row);
         });
 
-        // Add category lock & purge segments button
-        let videoID = '';
-        const youtubeURL = document.body.querySelector('li.list-group-item > a[href^="https://www.youtube.com"], li.list-group-item > a[href^="https://youtu.be"]')?.href;
-        if (youtubeURL.includes('youtube.com')) {
-            videoID = new URL(youtubeURL).searchParams.get('v');
-        }
-        else if (youtubeURL.includes('youtu.be')) {
-            videoID = new URL(youtubeURL).pathname.substring(1);
-        }
+        // VIP only buttons
+        if (GM_getValue(STORAGE_VARS.IsVIP)) {
+            // Add category lock & purge segments button
+            let videoID = '';
+            const youtubeURL = document.body.querySelector('li.list-group-item > a[href^="https://www.youtube.com"], li.list-group-item > a[href^="https://youtu.be"]')?.href;
+            if (youtubeURL.includes('youtube.com')) {
+                videoID = new URL(youtubeURL).searchParams.get('v');
+            }
+            else if (youtubeURL.includes('youtu.be')) {
+                videoID = new URL(youtubeURL).pathname.substring(1);
+            }
 
-        if (videoID) {
-            const navbarContainer = DarkModeButton.parentNode;
+            if (videoID) {
+                const navbarContainer = DarkModeButton.parentNode;
 
-            // Category lock button
-            const categoryLockButton = document.createElement('button');
-            categoryLockButton.classList.add('btn', 'btn-warning', 'me-2');
-            categoryLockButton.append('🔒 Lock categories');
-            categoryLockButton.addEventListener('click', () => ShowLockCategoriesModal(videoID));
+                // Category lock button
+                const categoryLockButton = document.createElement('button');
+                categoryLockButton.classList.add('btn', 'btn-warning', 'me-2');
+                categoryLockButton.append('🔒 Lock categories');
+                categoryLockButton.addEventListener('click', () => ShowLockCategoriesModal(videoID));
 
-            navbarContainer.insertBefore(categoryLockButton, DarkModeButton);
+                navbarContainer.insertBefore(categoryLockButton, DarkModeButton);
 
-            // Purge segments button
-            const purgeSegmentsButton = document.createElement('button');
-            purgeSegmentsButton.classList.add('btn', 'btn-danger', 'me-2');
-            purgeSegmentsButton.append('🗑 Purge segments');
-            purgeSegmentsButton.addEventListener('click', () => {
-                const [_, acceptButton] = ShowConfirmModal('Purge segments', `Are you sure you want to purge all segments on ${videoID}?`, () => {
-                    SendPurgeSegments(videoID);
+                // Purge segments button
+                const purgeSegmentsButton = document.createElement('button');
+                purgeSegmentsButton.classList.add('btn', 'btn-danger', 'me-2');
+                purgeSegmentsButton.append('🗑 Purge segments');
+                purgeSegmentsButton.addEventListener('click', () => {
+                    const [_, acceptButton] = ShowConfirmModal('Purge segments', `Are you sure you want to purge all segments on ${videoID}?`, () => {
+                        SendPurgeSegments(videoID);
+                    });
+
+                    acceptButton.classList.remove('btn-primary');
+                    acceptButton.classList.add('btn-danger');
                 });
 
-                acceptButton.classList.remove('btn-primary');
-                acceptButton.classList.add('btn-danger');
-            });
-
-            navbarContainer.insertBefore(purgeSegmentsButton, DarkModeButton);
+                navbarContainer.insertBefore(purgeSegmentsButton, DarkModeButton);
+            }
         }
     }
 
@@ -306,23 +309,25 @@ div.disabled {
     }
 
     /**
-     * Add category change button to segment row
+     * Add category change button to segment row if user is VIP or user created the segment
      * @param {HTMLElement} row 
      */
     function AddCategoryChangeButtonToRow(row) {
-        row.children[CategoryHeaderIndex].appendChild(document.createElement('br'));
+        if (GM_getValue(STORAGE_VARS.IsVIP) || row.querySelector('textarea[name="UserID"]')?.value === GM_getValue(STORAGE_VARS.PublicUserID)) {
+            row.children[CategoryHeaderIndex].appendChild(document.createElement('br'));
 
-        const categoryChangeButton = row.children[CategoryHeaderIndex].appendFromString('<button class="btn btn-secondary btn-sm mt-1" title="Change this segment\'s category">✏</button>');
-        categoryChangeButton.addEventListener('click', () => {
-            categoryChangeButton.classList.add('disabled');
+            const categoryChangeButton = row.children[CategoryHeaderIndex].appendFromString('<button class="btn btn-secondary btn-sm mt-1" title="Change this segment\'s category">✏</button>');
+            categoryChangeButton.addEventListener('click', () => {
+                categoryChangeButton.classList.add('disabled');
 
-            const segmentId = row.querySelector('textarea[name="UUID"]')?.value;
-            const category = CATEGORIES.find(c => row.children[CategoryHeaderIndex].textContent.includes(c));
+                const segmentId = row.querySelector('textarea[name="UUID"]')?.value;
+                const category = CATEGORIES.find(c => row.children[CategoryHeaderIndex].textContent.includes(c));
 
-            ShowCategoryChangeModal(segmentId, category, () => {
-                categoryChangeButton.classList.remove('disabled');
+                ShowCategoryChangeModal(segmentId, category, () => {
+                    categoryChangeButton.classList.remove('disabled');
+                });
             });
-        });
+        }
     }
 
     /**
@@ -942,9 +947,9 @@ div.disabled {
                             if (onError) onError();
                             break;
                         case 200:
-                            GM_setValue('publicUserID', response.response.userID);
-                            GM_setValue('username', response.response.userName);
-                            GM_setValue('isVIP', response.response.vip);
+                            GM_setValue(STORAGE_VARS.PublicUserID, response.response.userID);
+                            GM_setValue(STORAGE_VARS.Username, response.response.userName);
+                            GM_setValue(STORAGE_VARS.IsVIP, response.response.vip);
                             if (onSuccess) onSuccess({ publicUserID: response.response.userID, username: response.response.userName, isVIP: response.response.vip });
                             break;
                         default:
