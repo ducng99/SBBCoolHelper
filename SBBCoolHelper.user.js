@@ -289,7 +289,7 @@ div.disabled {
      * Show a modal with a list of categories to choose from and a button to save the category
      * @param {string} segmentId UUID of the segment
      * @param {string} category current category of the segment
-     * @param {Function|undefined} onClosed function to call when the modal is closed
+     * @param {() => any|undefined} onClosed function to call when the modal is closed
      */
     function ShowCategoryChangeModal(segmentId, category, onClosed) {
         // Create a modal
@@ -330,7 +330,7 @@ div.disabled {
     /**
      * Show a modal to lock categories of a video
      * @param {string} videoID 
-     * @param {Function|undefined} onClosed function to call when the modal is closed
+     * @param {() => any|undefined} onClosed function to call when the modal is closed
      */
     function ShowLockCategoriesModal(videoID, onClosed) {
         // Create a modal
@@ -442,8 +442,8 @@ div.disabled {
      * Show a confirmation modal
      * @param {string} title modal's title
      * @param {string} message modal's message
-     * @param {Function|undefined} onAccept function to be called when user press Yes button
-     * @param {Function|undefined} onDecline function to be called when user press No button
+     * @param {() => any|undefined} onAccept function to be called when user press Yes button
+     * @param {() => any|undefined} onDecline function to be called when user press No button
      * @returns {[Modal, HTMLButtonElement, HTMLButtonElement]} the modal instance, accept and decline buttons
      */
     function ShowConfirmModal(title, message, onAccept, onDecline) {
@@ -480,7 +480,7 @@ div.disabled {
         /** @type {HTMLHeadElement} */
         _title;
 
-        /** @type {Function|undefined} */
+        /** @type {() => any|undefined} */
         _onClosed;
 
         constructor() {
@@ -534,7 +534,7 @@ div.disabled {
         }
 
         /**
-         * @param {Function} onClosed
+         * @param {() => any} onClosed
          */
         set OnClosed(onClosed) {
             this._onClosed = onClosed;
@@ -575,8 +575,8 @@ div.disabled {
      * Send request to API for voting on segments
      * @param {string} uuid
      * @param {VOTE_SEG_OPTIONS} voteID
-     * @param {Function|undefined} onSuccess function to call when the request is successful
-     * @param {Function|undefined} onError function to call when the request returns an error or there is an error with input
+     * @param {() => any|undefined} onSuccess function to call when the request is successful
+     * @param {() => any|undefined} onError function to call when the request returns an error or there is an error with input
     */
     function SendVoteSegment(uuid, voteID, onSuccess, onError) {
         const userID = GM_getValue('userID');
@@ -636,8 +636,8 @@ div.disabled {
      * Update category of a segment
      * @param {string} uuid segment UUID
      * @param {string} category the new category of the segment
-     * @param {Function|undefined} onSuccess function to call when the request is successful
-     * @param {Function|undefined} onError function to call when the request returns an error or there is an error with input
+     * @param {() => any|undefined} onSuccess function to call when the request is successful
+     * @param {() => any|undefined} onError function to call when the request returns an error or there is an error with input
      */
     function SendCategoryUpdate(uuid, category, onSuccess, onError) {
         const userID = GM_getValue('userID');
@@ -699,8 +699,8 @@ div.disabled {
      * @param {string[]} categories an array of categories being locked
      * @param {string[]} actionTypes an array of action types being locked
      * @param {string} reason why these categories are locked
-     * @param {Function|undefined} onSuccess function to call when the request is successful
-     * @param {Function|undefined} onError function to call when the request returns an error or there is an error with input
+     * @param {() => any|undefined} onSuccess function to call when the request is successful
+     * @param {() => any|undefined} onError function to call when the request returns an error or there is an error with input
      */
     function SendLockCategories(videoID, categories, actionTypes, reason, onSuccess, onError) {
         const userID = GM_getValue('userID');
@@ -766,8 +766,8 @@ div.disabled {
      * @param {string} videoID 
      * @param {string[]} categories an array of categories being locked
      * @param {string[]} actionTypes an array of action types being locked
-     * @param {Function|undefined} onSuccess function to call when the request is successful
-     * @param {Function|undefined} onError function to call when the request returns an error or there is an error with input
+     * @param {() => any|undefined} onSuccess function to call when the request is successful
+     * @param {() => any|undefined} onError function to call when the request returns an error or there is an error with input
      */
     function SendUnlockCategories(videoID, categories, actionTypes, onSuccess, onError) {
         const userID = GM_getValue('userID');
@@ -831,8 +831,8 @@ div.disabled {
     /**
      * Send request to remove all segments on a video
      * @param {string} videoID 
-     * @param {Function|undefined} onSuccess function to call when the request is successful
-     * @param {Function|undefined} onError function to call when the request returns an error or there is an error with input
+     * @param {() => any|undefined} onSuccess function to call when the request is successful
+     * @param {() => any|undefined} onError function to call when the request returns an error or there is an error with input
      */
     function SendPurgeSegments(videoID, onSuccess, onError) {
         const userID = GM_getValue('userID');
