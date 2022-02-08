@@ -248,8 +248,14 @@ div.disabled {
         const downvoteButton = votingContainer.appendFromString(`<div class="voteButton">${THUMBS_DOWN_ICON}</div>`);
 
         if (row.children[VoteHeaderIndex].textContent.includes('🔒')) {
-            downvoteButton.setAttribute('title', 'This segment is locked by a VIP, be sure to discuss first before downvoting this segment');
-            downvoteButton.style.color = '#ffc83d';
+            if (GM_getValue(STORAGE_VARS.IsVIP)) {
+                downvoteButton.setAttribute('title', 'This segment is locked by a VIP, be sure to discuss first before downvoting this segment');
+                downvoteButton.style.color = '#ffc83d';
+            }
+            else {
+                downvoteButton.setAttribute('title', 'This segment is locked by a VIP');
+                downvoteButton.classList.add('disabled');
+            }
         }
         else {
             downvoteButton.setAttribute('title', 'Downvote this segment');
