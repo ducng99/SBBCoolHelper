@@ -978,6 +978,6 @@ div.disabled {
     }
 
     function VerifyPrivateUserID(userID) {
-        return userID.length >= 32;
+        return userID && userID.length >= 32;
     }
 })();
