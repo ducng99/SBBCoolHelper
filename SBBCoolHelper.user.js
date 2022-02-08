@@ -626,7 +626,6 @@ div.disabled {
                 },
                 onerror: function () {
                     ShowToast('Failed to send the request, something might be wrong with the server or your internet is 💩.', TOAST_TYPE.Warning);
-
                     if (onError) onError();
                 }
             });
@@ -688,7 +687,6 @@ div.disabled {
                 },
                 onerror: function () {
                     ShowToast('Failed to send the request, something might be wrong with the server or your internet is 💩.', TOAST_TYPE.Warning);
-
                     if (onError) onError();
                 }
             });
@@ -757,7 +755,6 @@ div.disabled {
                 },
                 onerror: function () {
                     ShowToast('Failed to send the request, something might be wrong with the server or your internet is 💩.', TOAST_TYPE.Warning);
-
                     if (onError) onError();
                 }
             });
@@ -825,7 +822,6 @@ div.disabled {
                 },
                 onerror: function () {
                     ShowToast('Failed to send the request, something might be wrong with the server or your internet is 💩.', TOAST_TYPE.Warning);
-
                     if (onError) onError();
                 }
             });
@@ -876,13 +872,12 @@ div.disabled {
                 },
                 onerror: function () {
                     ShowToast('Failed to send the request, something might be wrong with the server or your internet is 💩.', TOAST_TYPE.Warning);
-
                     if (onError) onError();
                 }
             });
         }
     }
-    
+
     function SendGetUserInfo(userID, onSuccess, onError) {
         if (!VerifyPrivateUserID(userID)) {
             ShowToast(`Invalid user ID: "${userID}"`, TOAST_TYPE.Warning);
