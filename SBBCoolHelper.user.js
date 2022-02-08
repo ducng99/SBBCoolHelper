@@ -75,7 +75,7 @@ div.disabled {
     const ACTION_TYPES = ['skip', 'mute', 'full'];
 
     // Please give me enum JS 😢
-    const TOAST_TYPE = { Normal: 'Normal', Warning: 'Warning', Danger: 'Danger' };
+    const TOAST_TYPE = { Normal: 0, Warning: 1, Danger: 2 };
 
     // Global variables
     let IsStarted = false;
@@ -91,11 +91,13 @@ div.disabled {
 
         if (VerifyPrivateUserID(userID)) {
             GM_setValue('userID', userID);
-            ShowToast('Saved!');
-            userIDSetButton.classList.remove('btn-warning');
-            userIDSetButton.classList.add('btn-secondary');
 
-            if (!IsStarted) Main();
+            SendGetUserInfo((info) => {
+                ShowToast('Saved!');
+
+                UpdateSetUserIDButton(info.publicUserID, info.username, info.isVIP);
+                if (!IsStarted) Main();
+            });
         }
         else if (userID) {
             ShowToast("Invalid user ID! Please try again.", TOAST_TYPE.Warning);
@@ -103,16 +105,57 @@ div.disabled {
     });
 
     if (VerifyPrivateUserID(GM_getValue('userID'))) {
-        userIDSetButton.classList.add('btn-secondary');
-        Main();
+        let publicUserID = GM_getValue('publicUserID');
+        let username = GM_getValue('username');
+        let isVIP = GM_getValue('isVIP');
+
+        if (publicUserID && username && isVIP) {
+            UpdateSetUserIDButton(publicUserID, username, isVIP);
+            Main();
+        }
+        else {
+            SendGetUserInfo((info) => {
+                UpdateSetUserIDButton(info.publicUserID, info.username, info.isVIP);
+                if (!IsStarted) Main();
+            });
+        }
     }
     else {
         userIDSetButton.classList.add('btn-warning');
     }
 
+    /**
+     * Update the Set UserID button to show the current user
+     * @param {string} publicUserID
+     * @param {string} username
+     * @param {boolean} isVIP
+     */
+    function UpdateSetUserIDButton(publicUserID, username, isVIP) {
+        userIDSetButton.classList.remove('btn-warning');
+        userIDSetButton.classList.add('btn-secondary');
+        userIDSetButton.textContent = '';
+
+        if (isVIP) {
+            userIDSetButton.append('👑 ');
+        }
+        else {
+            userIDSetButton.append('👨‍💻 ');
+        }
+
+        if (username === publicUserID) {
+            userIDSetButton.append(`${username.substr(0, 6)}`);
+        }
+        else {
+            userIDSetButton.append(`${username}`);
+        }
+    }
+
     // Setup toasts container
     const TOASTS_CONTAINER = document.body.appendFromString(`<div class="toast-container position-fixed top-0 start-50 translate-middle-x mt-3" style="z-index: 1111"></div>`);
 
+    /**
+     * Unleash da powah
+     */
     function Main() {
         IsStarted = true;
 
@@ -878,14 +921,22 @@ div.disabled {
         }
     }
 
-    function SendGetUserInfo(userID, onSuccess, onError) {
+    /**
+     * Send request to receive information about the current user and store it in the GM storage
+     * @param {({publicUserID: string, username: string, isVIP: boolean}) => void} onSuccess 
+     * @param {() => void} onError function to call when the request returns an error or there is an error with input
+     */
+    function SendGetUserInfo(onSuccess, onError) {
+        const userID = GM_getValue('userID');
+
         if (!VerifyPrivateUserID(userID)) {
             ShowToast(`Invalid user ID: "${userID}"`, TOAST_TYPE.Warning);
+            if (onError) onError();
         }
         else {
             GM_xmlhttpRequest({
                 method: 'GET',
-                url: `https://sponsor.ajay.app/api/userInfo?userID=${userID}&values=["userID","username","vip"]`,
+                url: `https://sponsor.ajay.app/api/userInfo?userID=${userID}&values=["userID","userName","vip"]`,
                 responseType: 'json',
                 onload: function (response) {
                     switch (response.status) {
@@ -895,9 +946,9 @@ div.disabled {
                             break;
                         case 200:
                             GM_setValue('publicUserID', response.response.userID);
-                            GM_setValue('username', response.response.username);
+                            GM_setValue('username', response.response.userName);
                             GM_setValue('isVIP', response.response.vip);
-                            if (onSuccess) onSuccess();
+                            if (onSuccess) onSuccess({ publicUserID: response.response.userID, username: response.response.userName, isVIP: response.response.vip });
                             break;
                         default:
                             ShowToast('Failed to send the request, something might be wrong with the server.', TOAST_TYPE.Warning);
