@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         SBB Cool Helper
 // @namespace    maxhyt.SBBCoolHelper
-// @version      1.3.3.0
+// @version      2.0.0.0
 // @description  Add VIP features to SBB site
 // @license      AGPL-3.0-or-later
 // @copyright    2022. Thomas Nguyen
@@ -74,8 +74,10 @@ div.disabled {
     const CATEGORIES_NAMES = ['Sponsor', 'Unpaid/Self promotion', 'Interaction reminder', 'Intermission/Intro animation', 'Endcards/Credits', 'Preview/Recap', 'Music: Non-music', 'Filler Tangent', 'Highlight', 'Exclusive Access'];
     const ACTION_TYPES = ['skip', 'mute', 'full'];
 
+    const STORAGE_VARS = { PrivateUserID: 'userID', PublicUserID: 'publicUserID', Username: 'username', IsVIP: 'isVIP' };
+
     // Please give me enum JS 😢
-    const TOAST_TYPE = { Normal: 'Normal', Warning: 'Warning', Danger: 'Danger' };
+    const TOAST_TYPE = { Normal: 0, Warning: 1, Danger: 2 };
 
     // Global variables
     let IsStarted = false;
@@ -90,29 +92,67 @@ div.disabled {
         const userID = prompt("Enter your private user ID:");
 
         if (VerifyPrivateUserID(userID)) {
-            GM_setValue('userID', userID);
-            ShowToast('Saved!');
-            userIDSetButton.classList.remove('btn-warning');
-            userIDSetButton.classList.add('btn-secondary');
+            GM_setValue(STORAGE_VARS.PrivateUserID, userID);
 
-            if (!IsStarted) Main();
+            SendGetUserInfo((info) => {
+                ShowToast('Saved!');
+
+                UpdateSetUserIDButton(info.username, info.isVIP);
+                if (!IsStarted) Main();
+            });
         }
         else if (userID) {
             ShowToast("Invalid user ID! Please try again.", TOAST_TYPE.Warning);
         }
     });
 
-    if (VerifyPrivateUserID(GM_getValue('userID'))) {
-        userIDSetButton.classList.add('btn-secondary');
-        Main();
+    if (VerifyPrivateUserID(GM_getValue(STORAGE_VARS.PrivateUserID))) {
+        let publicUserID = GM_getValue(STORAGE_VARS.PublicUserID);
+        let username = GM_getValue(STORAGE_VARS.Username);
+        let isVIP = GM_getValue(STORAGE_VARS.IsVIP);
+
+        if (publicUserID && username && isVIP) {
+            UpdateSetUserIDButton(username, isVIP);
+            if (!IsStarted) Main();
+        }
+        else {
+            SendGetUserInfo((info) => {
+                UpdateSetUserIDButton(info.username, info.isVIP);
+                if (!IsStarted) Main();
+            });
+        }
     }
     else {
         userIDSetButton.classList.add('btn-warning');
     }
 
+    /**
+     * Update the Set UserID button to show the current user
+     * @param {string} username
+     * @param {boolean} isVIP
+     */
+    function UpdateSetUserIDButton(username, isVIP) {
+        userIDSetButton.classList.remove('btn-warning');
+        userIDSetButton.classList.add('btn-secondary');
+        userIDSetButton.textContent = '';
+
+        if (isVIP) {
+            userIDSetButton.append('👑 ');
+        }
+        else {
+            userIDSetButton.append('👨‍💻 ');
+        }
+
+        // Show max 10 characters
+        userIDSetButton.append(`${username.substring(0, 10)}`);
+    }
+
     // Setup toasts container
     const TOASTS_CONTAINER = document.body.appendFromString(`<div class="toast-container position-fixed top-0 start-50 translate-middle-x mt-3" style="z-index: 1111"></div>`);
 
+    /**
+     * Unleash da powah
+     */
     function Main() {
         IsStarted = true;
 
@@ -136,41 +176,44 @@ div.disabled {
             AddCategoryChangeButtonToRow(row);
         });
 
-        // Add category lock & purge segments button
-        let videoID = '';
-        const youtubeURL = document.body.querySelector('li.list-group-item > a[href^="https://www.youtube.com"], li.list-group-item > a[href^="https://youtu.be"]')?.href;
-        if (youtubeURL.includes('youtube.com')) {
-            videoID = new URL(youtubeURL).searchParams.get('v');
-        }
-        else if (youtubeURL.includes('youtu.be')) {
-            videoID = new URL(youtubeURL).pathname.substring(1);
-        }
+        // VIP only buttons
+        if (GM_getValue(STORAGE_VARS.IsVIP)) {
+            // Add category lock & purge segments button
+            let videoID = '';
+            const youtubeURL = document.body.querySelector('li.list-group-item > a[href^="https://www.youtube.com"], li.list-group-item > a[href^="https://youtu.be"]')?.href;
+            if (youtubeURL.includes('youtube.com')) {
+                videoID = new URL(youtubeURL).searchParams.get('v');
+            }
+            else if (youtubeURL.includes('youtu.be')) {
+                videoID = new URL(youtubeURL).pathname.substring(1);
+            }
 
-        if (videoID) {
-            const navbarContainer = DarkModeButton.parentNode;
+            if (videoID) {
+                const navbarContainer = DarkModeButton.parentNode;
 
-            // Category lock button
-            const categoryLockButton = document.createElement('button');
-            categoryLockButton.classList.add('btn', 'btn-warning', 'me-2');
-            categoryLockButton.append('🔒 Lock categories');
-            categoryLockButton.addEventListener('click', () => ShowLockCategoriesModal(videoID));
+                // Category lock button
+                const categoryLockButton = document.createElement('button');
+                categoryLockButton.classList.add('btn', 'btn-warning', 'me-2');
+                categoryLockButton.append('🔒 Lock categories');
+                categoryLockButton.addEventListener('click', () => ShowLockCategoriesModal(videoID));
 
-            navbarContainer.insertBefore(categoryLockButton, DarkModeButton);
+                navbarContainer.insertBefore(categoryLockButton, DarkModeButton);
 
-            // Purge segments button
-            const purgeSegmentsButton = document.createElement('button');
-            purgeSegmentsButton.classList.add('btn', 'btn-danger', 'me-2');
-            purgeSegmentsButton.append('🗑 Purge segments');
-            purgeSegmentsButton.addEventListener('click', () => {
-                const [_, acceptButton] = ShowConfirmModal('Purge segments', `Are you sure you want to purge all segments on ${videoID}?`, () => {
-                    SendPurgeSegments(videoID);
+                // Purge segments button
+                const purgeSegmentsButton = document.createElement('button');
+                purgeSegmentsButton.classList.add('btn', 'btn-danger', 'me-2');
+                purgeSegmentsButton.append('🗑 Purge segments');
+                purgeSegmentsButton.addEventListener('click', () => {
+                    const [_, acceptButton] = ShowConfirmModal('Purge segments', `Are you sure you want to purge all segments on ${videoID}?`, () => {
+                        SendPurgeSegments(videoID);
+                    });
+
+                    acceptButton.classList.remove('btn-primary');
+                    acceptButton.classList.add('btn-danger');
                 });
 
-                acceptButton.classList.remove('btn-primary');
-                acceptButton.classList.add('btn-danger');
-            });
-
-            navbarContainer.insertBefore(purgeSegmentsButton, DarkModeButton);
+                navbarContainer.insertBefore(purgeSegmentsButton, DarkModeButton);
+            }
         }
     }
 
@@ -205,8 +248,14 @@ div.disabled {
         const downvoteButton = votingContainer.appendFromString(`<div class="voteButton">${THUMBS_DOWN_ICON}</div>`);
 
         if (row.children[VoteHeaderIndex].textContent.includes('🔒')) {
-            downvoteButton.setAttribute('title', 'This segment is locked by a VIP, be sure to discuss first before downvoting this segment');
-            downvoteButton.style.color = '#ffc83d';
+            if (GM_getValue(STORAGE_VARS.IsVIP)) {
+                downvoteButton.setAttribute('title', 'This segment is locked by a VIP, be sure to discuss first before downvoting this segment');
+                downvoteButton.style.color = '#ffc83d';
+            }
+            else {
+                downvoteButton.setAttribute('title', 'This segment is locked by a VIP');
+                downvoteButton.classList.add('disabled');
+            }
         }
         else {
             downvoteButton.setAttribute('title', 'Downvote this segment');
@@ -266,30 +315,32 @@ div.disabled {
     }
 
     /**
-     * Add category change button to segment row
+     * Add category change button to segment row if user is VIP or user created the segment
      * @param {HTMLElement} row 
      */
     function AddCategoryChangeButtonToRow(row) {
-        row.children[CategoryHeaderIndex].appendChild(document.createElement('br'));
+        if (GM_getValue(STORAGE_VARS.IsVIP) || row.querySelector('textarea[name="UserID"]')?.value === GM_getValue(STORAGE_VARS.PublicUserID)) {
+            row.children[CategoryHeaderIndex].appendChild(document.createElement('br'));
 
-        const categoryChangeButton = row.children[CategoryHeaderIndex].appendFromString('<button class="btn btn-secondary btn-sm mt-1" title="Change this segment\'s category">✏</button>');
-        categoryChangeButton.addEventListener('click', () => {
-            categoryChangeButton.classList.add('disabled');
+            const categoryChangeButton = row.children[CategoryHeaderIndex].appendFromString('<button class="btn btn-secondary btn-sm mt-1" title="Change this segment\'s category">✏</button>');
+            categoryChangeButton.addEventListener('click', () => {
+                categoryChangeButton.classList.add('disabled');
 
-            const segmentId = row.querySelector('textarea[name="UUID"]')?.value;
-            const category = CATEGORIES.find(c => row.children[CategoryHeaderIndex].textContent.includes(c));
+                const segmentId = row.querySelector('textarea[name="UUID"]')?.value;
+                const category = CATEGORIES.find(c => row.children[CategoryHeaderIndex].textContent.includes(c));
 
-            ShowCategoryChangeModal(segmentId, category, () => {
-                categoryChangeButton.classList.remove('disabled');
+                ShowCategoryChangeModal(segmentId, category, () => {
+                    categoryChangeButton.classList.remove('disabled');
+                });
             });
-        });
+        }
     }
 
     /**
      * Show a modal with a list of categories to choose from and a button to save the category
      * @param {string} segmentId UUID of the segment
      * @param {string} category current category of the segment
-     * @param {Function|undefined} onClosed function to call when the modal is closed
+     * @param {() => any|undefined} onClosed function to call when the modal is closed
      */
     function ShowCategoryChangeModal(segmentId, category, onClosed) {
         // Create a modal
@@ -330,7 +381,7 @@ div.disabled {
     /**
      * Show a modal to lock categories of a video
      * @param {string} videoID 
-     * @param {Function|undefined} onClosed function to call when the modal is closed
+     * @param {() => any|undefined} onClosed function to call when the modal is closed
      */
     function ShowLockCategoriesModal(videoID, onClosed) {
         // Create a modal
@@ -442,8 +493,8 @@ div.disabled {
      * Show a confirmation modal
      * @param {string} title modal's title
      * @param {string} message modal's message
-     * @param {Function|undefined} onAccept function to be called when user press Yes button
-     * @param {Function|undefined} onDecline function to be called when user press No button
+     * @param {() => any|undefined} onAccept function to be called when user press Yes button
+     * @param {() => any|undefined} onDecline function to be called when user press No button
      * @returns {[Modal, HTMLButtonElement, HTMLButtonElement]} the modal instance, accept and decline buttons
      */
     function ShowConfirmModal(title, message, onAccept, onDecline) {
@@ -480,7 +531,7 @@ div.disabled {
         /** @type {HTMLHeadElement} */
         _title;
 
-        /** @type {Function|undefined} */
+        /** @type {() => any|undefined} */
         _onClosed;
 
         constructor() {
@@ -534,7 +585,7 @@ div.disabled {
         }
 
         /**
-         * @param {Function} onClosed
+         * @param {() => any} onClosed
          */
         set OnClosed(onClosed) {
             this._onClosed = onClosed;
@@ -575,11 +626,11 @@ div.disabled {
      * Send request to API for voting on segments
      * @param {string} uuid
      * @param {VOTE_SEG_OPTIONS} voteID
-     * @param {Function|undefined} onSuccess function to call when the request is successful
-     * @param {Function|undefined} onError function to call when the request returns an error or there is an error with input
+     * @param {() => any|undefined} onSuccess function to call when the request is successful
+     * @param {() => any|undefined} onError function to call when the request returns an error or there is an error with input
     */
     function SendVoteSegment(uuid, voteID, onSuccess, onError) {
-        const userID = GM_getValue('userID');
+        const userID = GM_getValue(STORAGE_VARS.PrivateUserID);
 
         if (!VerifyUUID(uuid)) {
             ShowToast(`Invalid segment ID: "${uuid}"`, TOAST_TYPE.Warning);
@@ -626,7 +677,6 @@ div.disabled {
                 },
                 onerror: function () {
                     ShowToast('Failed to send the request, something might be wrong with the server or your internet is 💩.', TOAST_TYPE.Warning);
-
                     if (onError) onError();
                 }
             });
@@ -637,11 +687,11 @@ div.disabled {
      * Update category of a segment
      * @param {string} uuid segment UUID
      * @param {string} category the new category of the segment
-     * @param {Function|undefined} onSuccess function to call when the request is successful
-     * @param {Function|undefined} onError function to call when the request returns an error or there is an error with input
+     * @param {() => any|undefined} onSuccess function to call when the request is successful
+     * @param {() => any|undefined} onError function to call when the request returns an error or there is an error with input
      */
     function SendCategoryUpdate(uuid, category, onSuccess, onError) {
-        const userID = GM_getValue('userID');
+        const userID = GM_getValue(STORAGE_VARS.PrivateUserID);
 
         if (!VerifyUUID(uuid)) {
             ShowToast(`Invalid segment ID: "${uuid}"`, TOAST_TYPE.Warning);
@@ -688,7 +738,6 @@ div.disabled {
                 },
                 onerror: function () {
                     ShowToast('Failed to send the request, something might be wrong with the server or your internet is 💩.', TOAST_TYPE.Warning);
-
                     if (onError) onError();
                 }
             });
@@ -701,11 +750,11 @@ div.disabled {
      * @param {string[]} categories an array of categories being locked
      * @param {string[]} actionTypes an array of action types being locked
      * @param {string} reason why these categories are locked
-     * @param {Function|undefined} onSuccess function to call when the request is successful
-     * @param {Function|undefined} onError function to call when the request returns an error or there is an error with input
+     * @param {() => any|undefined} onSuccess function to call when the request is successful
+     * @param {() => any|undefined} onError function to call when the request returns an error or there is an error with input
      */
     function SendLockCategories(videoID, categories, actionTypes, reason, onSuccess, onError) {
-        const userID = GM_getValue('userID');
+        const userID = GM_getValue(STORAGE_VARS.PrivateUserID);
         const invalidCategories = categories.filter(c => CATEGORIES.indexOf(c) === -1);
         const invalidActionTypes = actionTypes.filter(t => ACTION_TYPES.indexOf(t) === -1);
 
@@ -757,7 +806,6 @@ div.disabled {
                 },
                 onerror: function () {
                     ShowToast('Failed to send the request, something might be wrong with the server or your internet is 💩.', TOAST_TYPE.Warning);
-
                     if (onError) onError();
                 }
             });
@@ -769,11 +817,11 @@ div.disabled {
      * @param {string} videoID 
      * @param {string[]} categories an array of categories being locked
      * @param {string[]} actionTypes an array of action types being locked
-     * @param {Function|undefined} onSuccess function to call when the request is successful
-     * @param {Function|undefined} onError function to call when the request returns an error or there is an error with input
+     * @param {() => any|undefined} onSuccess function to call when the request is successful
+     * @param {() => any|undefined} onError function to call when the request returns an error or there is an error with input
      */
     function SendUnlockCategories(videoID, categories, actionTypes, onSuccess, onError) {
-        const userID = GM_getValue('userID');
+        const userID = GM_getValue(STORAGE_VARS.PrivateUserID);
         const invalidCategories = categories.filter(c => CATEGORIES.indexOf(c) === -1);
         const invalidActionTypes = actionTypes.filter(t => ACTION_TYPES.indexOf(t) === -1);
 
@@ -825,7 +873,6 @@ div.disabled {
                 },
                 onerror: function () {
                     ShowToast('Failed to send the request, something might be wrong with the server or your internet is 💩.', TOAST_TYPE.Warning);
-
                     if (onError) onError();
                 }
             });
@@ -835,11 +882,11 @@ div.disabled {
     /**
      * Send request to remove all segments on a video
      * @param {string} videoID 
-     * @param {Function|undefined} onSuccess function to call when the request is successful
-     * @param {Function|undefined} onError function to call when the request returns an error or there is an error with input
+     * @param {() => any|undefined} onSuccess function to call when the request is successful
+     * @param {() => any|undefined} onError function to call when the request returns an error or there is an error with input
      */
     function SendPurgeSegments(videoID, onSuccess, onError) {
-        const userID = GM_getValue('userID');
+        const userID = GM_getValue(STORAGE_VARS.PrivateUserID);
 
         if (!VerifyPrivateUserID(userID)) {
             ShowToast(`Invalid user ID: "${userID}"`, TOAST_TYPE.Warning);
@@ -876,7 +923,49 @@ div.disabled {
                 },
                 onerror: function () {
                     ShowToast('Failed to send the request, something might be wrong with the server or your internet is 💩.', TOAST_TYPE.Warning);
+                    if (onError) onError();
+                }
+            });
+        }
+    }
 
+    /**
+     * Send request to receive information about the current user and store it in the GM storage
+     * @param {({publicUserID: string, username: string, isVIP: boolean}) => void} onSuccess 
+     * @param {() => void} onError function to call when the request returns an error or there is an error with input
+     */
+    function SendGetUserInfo(onSuccess, onError) {
+        const userID = GM_getValue(STORAGE_VARS.PrivateUserID);
+
+        if (!VerifyPrivateUserID(userID)) {
+            ShowToast(`Invalid user ID: "${userID}"`, TOAST_TYPE.Warning);
+            if (onError) onError();
+        }
+        else {
+            GM_xmlhttpRequest({
+                method: 'GET',
+                url: `https://sponsor.ajay.app/api/userInfo?userID=${userID}&values=["userID","userName","vip"]`,
+                responseType: 'json',
+                onload: function (response) {
+                    switch (response.status) {
+                        case 400:
+                            ShowToast('Failed to get user info. Please check your User ID', TOAST_TYPE.Danger);
+                            if (onError) onError();
+                            break;
+                        case 200:
+                            GM_setValue(STORAGE_VARS.PublicUserID, response.response.userID);
+                            GM_setValue(STORAGE_VARS.Username, response.response.userName);
+                            GM_setValue(STORAGE_VARS.IsVIP, response.response.vip);
+                            if (onSuccess) onSuccess({ publicUserID: response.response.userID, username: response.response.userName, isVIP: response.response.vip });
+                            break;
+                        default:
+                            ShowToast('Failed to send the request, something might be wrong with the server.', TOAST_TYPE.Warning);
+                            if (onError) onError();
+                            break;
+                    }
+                },
+                onerror: function () {
+                    ShowToast('Failed to send the request, something might be wrong with the server or your internet is 💩.', TOAST_TYPE.Warning);
                     if (onError) onError();
                 }
             });
@@ -889,6 +978,6 @@ div.disabled {
     }
 
     function VerifyPrivateUserID(userID) {
-        return userID.length >= 32;
+        return userID && userID.length >= 32;
     }
 })();

@@ -1,9 +1,12 @@
 # SponsorBlock Browser Cool Helper
-A small script to add additional functionalities to SBB for cool people 😎 (a.k.a VIPs)
+A small script to add additional functionalities to SBB for cool people 😎 (a.k.a VIPs) and also awesome normal people 😁
 
 ## Features
-- Add voting (up, down, undo) to each segment
-- Add category change to each segment
+### All users
+- Add voting (up, down, undo) buttons to each segment
+- Add category change buttons to your segments
+### VIP
+- Add category change buttons to all segments
 - Lock/Unlock categories
 - Purge all segments
 - *Please suggest*
