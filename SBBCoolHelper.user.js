@@ -74,6 +74,8 @@ div.disabled {
     const CATEGORIES_NAMES = ['Sponsor', 'Unpaid/Self promotion', 'Interaction reminder', 'Intermission/Intro animation', 'Endcards/Credits', 'Preview/Recap', 'Music: Non-music', 'Filler Tangent', 'Highlight', 'Exclusive Access'];
     const ACTION_TYPES = ['skip', 'mute', 'full'];
 
+    const STORAGE_VARS = { PrivateUserID: 'userID', PublicUserID: 'publicUserID', Username: 'username', IsVIP: 'isVIP' };
+
     // Please give me enum JS 😢
     const TOAST_TYPE = { Normal: 0, Warning: 1, Danger: 2 };
 
@@ -90,12 +92,12 @@ div.disabled {
         const userID = prompt("Enter your private user ID:");
 
         if (VerifyPrivateUserID(userID)) {
-            GM_setValue('userID', userID);
+            GM_setValue(STORAGE_VARS.PrivateUserID, userID);
 
             SendGetUserInfo((info) => {
                 ShowToast('Saved!');
 
-                UpdateSetUserIDButton(info.publicUserID, info.username, info.isVIP);
+                UpdateSetUserIDButton(info.username, info.isVIP);
                 if (!IsStarted) Main();
             });
         }
@@ -104,18 +106,18 @@ div.disabled {
         }
     });
 
-    if (VerifyPrivateUserID(GM_getValue('userID'))) {
-        let publicUserID = GM_getValue('publicUserID');
-        let username = GM_getValue('username');
-        let isVIP = GM_getValue('isVIP');
+    if (VerifyPrivateUserID(GM_getValue(STORAGE_VARS.PrivateUserID))) {
+        let publicUserID = GM_getValue(STORAGE_VARS.PublicUserID);
+        let username = GM_getValue(STORAGE_VARS.Username);
+        let isVIP = GM_getValue(STORAGE_VARS.IsVIP);
 
         if (publicUserID && username && isVIP) {
-            UpdateSetUserIDButton(publicUserID, username, isVIP);
+            UpdateSetUserIDButton(username, isVIP);
             Main();
         }
         else {
             SendGetUserInfo((info) => {
-                UpdateSetUserIDButton(info.publicUserID, info.username, info.isVIP);
+                UpdateSetUserIDButton(info.username, info.isVIP);
                 if (!IsStarted) Main();
             });
         }
@@ -126,11 +128,10 @@ div.disabled {
 
     /**
      * Update the Set UserID button to show the current user
-     * @param {string} publicUserID
      * @param {string} username
      * @param {boolean} isVIP
      */
-    function UpdateSetUserIDButton(publicUserID, username, isVIP) {
+    function UpdateSetUserIDButton(username, isVIP) {
         userIDSetButton.classList.remove('btn-warning');
         userIDSetButton.classList.add('btn-secondary');
         userIDSetButton.textContent = '';
@@ -142,12 +143,8 @@ div.disabled {
             userIDSetButton.append('👨‍💻 ');
         }
 
-        if (username === publicUserID) {
-            userIDSetButton.append(`${username.substr(0, 6)}`);
-        }
-        else {
-            userIDSetButton.append(`${username}`);
-        }
+        // Show max 10 characters
+        userIDSetButton.append(`${username.substring(0, 10)}`);
     }
 
     // Setup toasts container
@@ -622,7 +619,7 @@ div.disabled {
      * @param {() => any|undefined} onError function to call when the request returns an error or there is an error with input
     */
     function SendVoteSegment(uuid, voteID, onSuccess, onError) {
-        const userID = GM_getValue('userID');
+        const userID = GM_getValue(STORAGE_VARS.PrivateUserID);
 
         if (!VerifyUUID(uuid)) {
             ShowToast(`Invalid segment ID: "${uuid}"`, TOAST_TYPE.Warning);
@@ -683,7 +680,7 @@ div.disabled {
      * @param {() => any|undefined} onError function to call when the request returns an error or there is an error with input
      */
     function SendCategoryUpdate(uuid, category, onSuccess, onError) {
-        const userID = GM_getValue('userID');
+        const userID = GM_getValue(STORAGE_VARS.PrivateUserID);
 
         if (!VerifyUUID(uuid)) {
             ShowToast(`Invalid segment ID: "${uuid}"`, TOAST_TYPE.Warning);
@@ -746,7 +743,7 @@ div.disabled {
      * @param {() => any|undefined} onError function to call when the request returns an error or there is an error with input
      */
     function SendLockCategories(videoID, categories, actionTypes, reason, onSuccess, onError) {
-        const userID = GM_getValue('userID');
+        const userID = GM_getValue(STORAGE_VARS.PrivateUserID);
         const invalidCategories = categories.filter(c => CATEGORIES.indexOf(c) === -1);
         const invalidActionTypes = actionTypes.filter(t => ACTION_TYPES.indexOf(t) === -1);
 
@@ -813,7 +810,7 @@ div.disabled {
      * @param {() => any|undefined} onError function to call when the request returns an error or there is an error with input
      */
     function SendUnlockCategories(videoID, categories, actionTypes, onSuccess, onError) {
-        const userID = GM_getValue('userID');
+        const userID = GM_getValue(STORAGE_VARS.PrivateUserID);
         const invalidCategories = categories.filter(c => CATEGORIES.indexOf(c) === -1);
         const invalidActionTypes = actionTypes.filter(t => ACTION_TYPES.indexOf(t) === -1);
 
@@ -878,7 +875,7 @@ div.disabled {
      * @param {() => any|undefined} onError function to call when the request returns an error or there is an error with input
      */
     function SendPurgeSegments(videoID, onSuccess, onError) {
-        const userID = GM_getValue('userID');
+        const userID = GM_getValue(STORAGE_VARS.PrivateUserID);
 
         if (!VerifyPrivateUserID(userID)) {
             ShowToast(`Invalid user ID: "${userID}"`, TOAST_TYPE.Warning);
@@ -927,7 +924,7 @@ div.disabled {
      * @param {() => void} onError function to call when the request returns an error or there is an error with input
      */
     function SendGetUserInfo(onSuccess, onError) {
-        const userID = GM_getValue('userID');
+        const userID = GM_getValue(STORAGE_VARS.PrivateUserID);
 
         if (!VerifyPrivateUserID(userID)) {
             ShowToast(`Invalid user ID: "${userID}"`, TOAST_TYPE.Warning);
