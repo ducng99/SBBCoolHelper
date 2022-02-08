@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         SBB Cool Helper
 // @namespace    maxhyt.SBBCoolHelper
-// @version      1.3.3.0
+// @version      2.0.0.0
 // @description  Add VIP features to SBB site
 // @license      AGPL-3.0-or-later
 // @copyright    2022. Thomas Nguyen
@@ -877,6 +877,41 @@ div.disabled {
                 onerror: function () {
                     ShowToast('Failed to send the request, something might be wrong with the server or your internet is 💩.', TOAST_TYPE.Warning);
 
+                    if (onError) onError();
+                }
+            });
+        }
+    }
+    
+    function SendGetUserInfo(userID, onSuccess, onError) {
+        if (!VerifyPrivateUserID(userID)) {
+            ShowToast(`Invalid user ID: "${userID}"`, TOAST_TYPE.Warning);
+        }
+        else {
+            GM_xmlhttpRequest({
+                method: 'GET',
+                url: `https://sponsor.ajay.app/api/userInfo?userID=${userID}&values=["userID","username","vip"]`,
+                responseType: 'json',
+                onload: function (response) {
+                    switch (response.status) {
+                        case 400:
+                            ShowToast('Failed to get user info. Please check your User ID', TOAST_TYPE.Danger);
+                            if (onError) onError();
+                            break;
+                        case 200:
+                            GM_setValue('publicUserID', response.response.userID);
+                            GM_setValue('username', response.response.username);
+                            GM_setValue('isVIP', response.response.vip);
+                            if (onSuccess) onSuccess();
+                            break;
+                        default:
+                            ShowToast('Failed to send the request, something might be wrong with the server.', TOAST_TYPE.Warning);
+                            if (onError) onError();
+                            break;
+                    }
+                },
+                onerror: function () {
+                    ShowToast('Failed to send the request, something might be wrong with the server or your internet is 💩.', TOAST_TYPE.Warning);
                     if (onError) onError();
                 }
             });
