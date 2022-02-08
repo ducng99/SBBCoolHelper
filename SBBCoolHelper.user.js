@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         SBB Cool Helper
 // @namespace    maxhyt.SBBCoolHelper
-// @version      1.3.2.0
+// @version      1.3.3.0
 // @description  Add VIP features to SBB site
 // @license      AGPL-3.0-or-later
 // @copyright    2022. Thomas Nguyen
@@ -162,12 +162,12 @@ div.disabled {
             purgeSegmentsButton.classList.add('btn', 'btn-danger', 'me-2');
             purgeSegmentsButton.append('🗑 Purge segments');
             purgeSegmentsButton.addEventListener('click', () => {
-                const [_, acceptButton, declineButton] = ShowConfirmModal('Purge segments', `Are you sure you want to purge all segments on ${videoID}?`, () => {
+                const [_, acceptButton] = ShowConfirmModal('Purge segments', `Are you sure you want to purge all segments on ${videoID}?`, () => {
                     SendPurgeSegments(videoID);
                 });
 
+                acceptButton.classList.remove('btn-primary');
                 acceptButton.classList.add('btn-danger');
-                declineButton.classList.add('btn-secondary');
             });
 
             navbarContainer.insertBefore(purgeSegmentsButton, DarkModeButton);
@@ -204,8 +204,8 @@ div.disabled {
         // Downvote button
         const downvoteButton = votingContainer.appendFromString(`<div class="voteButton">${THUMBS_DOWN_ICON}</div>`);
 
-        if (row.children[VoteHeaderIndex].textContent.includes('👑')) {
-            downvoteButton.setAttribute('title', 'This user is a VIP, be sure to discuss first before downvoting this segment');
+        if (row.children[VoteHeaderIndex].textContent.includes('🔒')) {
+            downvoteButton.setAttribute('title', 'This segment is locked by a VIP, be sure to discuss first before downvoting this segment');
             downvoteButton.style.color = '#ffc83d';
         }
         else {
@@ -459,6 +459,9 @@ div.disabled {
             if (onDecline) onDecline();
             modal.CloseModal().bind(modal);
         });
+
+        declineButton.classList.remove('btn-primary');
+        declineButton.classList.add('btn-secondary');
 
         return [modal, acceptButton, declineButton];
     }
