@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         SBB Cool Helper
 // @namespace    maxhyt.SBBCoolHelper
-// @version      2.0.0.0
+// @version      2.0.0.1
 // @description  Add VIP features to SBB site
 // @license      AGPL-3.0-or-later
 // @copyright    2022. Thomas Nguyen
@@ -181,11 +181,13 @@ div.disabled {
             // Add category lock & purge segments button
             let videoID = '';
             const youtubeURL = document.body.querySelector('li.list-group-item > a[href^="https://www.youtube.com"], li.list-group-item > a[href^="https://youtu.be"]')?.href;
-            if (youtubeURL.includes('youtube.com')) {
-                videoID = new URL(youtubeURL).searchParams.get('v');
-            }
-            else if (youtubeURL.includes('youtu.be')) {
-                videoID = new URL(youtubeURL).pathname.substring(1);
+            if (youtubeURL) {
+                if (youtubeURL.includes('youtube.com')) {
+                    videoID = new URL(youtubeURL).searchParams.get('v');
+                }
+                else if (youtubeURL.includes('youtu.be')) {
+                    videoID = new URL(youtubeURL).pathname.substring(1);
+                }
             }
 
             if (videoID) {
