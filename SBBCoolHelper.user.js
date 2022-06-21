@@ -174,6 +174,7 @@ div.disabled {
 
         // Add buttons to each segments in table
         tableRows.forEach(row => {
+            if (row.querySelector(".voteButton")) return; // skip row if voting buttons exist
             AddVotingButtonsToRow(row);
             AddCategoryChangeButtonToRow(row);
         });
@@ -194,10 +195,11 @@ div.disabled {
 
             if (videoID) {
                 const navbarContainer = DarkModeButton.parentNode;
+                if (navbarContainer.querySelector(".categoryLockButton")) return; // skip if button exists
 
                 // Category lock button
                 const categoryLockButton = document.createElement('button');
-                categoryLockButton.classList.add('btn', 'btn-warning', 'me-2');
+                categoryLockButton.classList.add('btn', 'btn-warning', 'me-2', 'categoryLockButton');
                 categoryLockButton.append('🔒 Lock categories');
                 categoryLockButton.addEventListener('click', () => ShowLockCategoriesModal(videoID));
 
@@ -205,7 +207,7 @@ div.disabled {
 
                 // Purge segments button
                 const purgeSegmentsButton = document.createElement('button');
-                purgeSegmentsButton.classList.add('btn', 'btn-danger', 'me-2');
+                purgeSegmentsButton.classList.add('btn', 'btn-danger', 'me-2', 'purgeSegmentsButton');
                 purgeSegmentsButton.append('🗑 Purge segments');
                 purgeSegmentsButton.addEventListener('click', () => {
                     const [_, acceptButton] = ShowConfirmModal('Purge segments', `Are you sure you want to purge all segments on ${videoID}?`, () => {
@@ -984,4 +986,7 @@ div.disabled {
     function VerifyPrivateUserID(userID) {
         return userID && userID.length >= 32;
     }
+
+    // Event listener for new segments
+    document.addEventListener('newSegments', (event) => Main());
 })();
