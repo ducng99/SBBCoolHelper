@@ -1,10 +1,10 @@
 // ==UserScript==
 // @name         SBB Cool Helper
 // @namespace    maxhyt.SBBCoolHelper
-// @version      2.0.0.2
+// @version      2.0.0.3
 // @description  Add VIP features to SBB site
 // @license      AGPL-3.0-or-later
-// @copyright    2022. Thomas Nguyen
+// @copyright    2022 Thomas Nguyen
 // @author       Maxhyt
 // @updateURL    https://raw.githubusercontent.com/ducng99/SBBCoolHelper/master/SBBCoolHelper.user.js
 // @downloadURL  https://raw.githubusercontent.com/ducng99/SBBCoolHelper/master/SBBCoolHelper.user.js
@@ -73,7 +73,7 @@ div.disabled {
     };
 
     const CATEGORIES = ['sponsor', 'selfpromo', 'interaction', 'intro', 'outro', 'preview', 'music_offtopic', 'filler', 'poi_highlight', 'exclusive_access'];
-    const CATEGORIES_NAMES = ['Sponsor', 'Unpaid/Self promotion', 'Interaction reminder', 'Intermission/Intro animation', 'Endcards/Credits', 'Preview/Recap', 'Music: Non-music', 'Filler Tangent', 'Highlight', 'Exclusive Access'];
+    const CATEGORIES_NAMES = ['Sponsor', 'Unpaid/Self promotion', 'Interaction reminder', 'Intermission/Intro animation', 'Endcards/Credits', 'Preview/Recap', 'Music: Non-music', 'Filler Tangent/Jokes', 'Highlight', 'Exclusive Access'];
     const ACTION_TYPES = ['skip', 'mute', 'full'];
 
     const STORAGE_VARS = { PrivateUserID: 'userID', PublicUserID: 'publicUserID', Username: 'username', IsVIP: 'isVIP' };
