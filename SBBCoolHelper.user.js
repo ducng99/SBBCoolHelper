@@ -1,10 +1,9 @@
 // ==UserScript==
 // @name         SBB Cool Helper
 // @namespace    maxhyt.SBBCoolHelper
-// @version      2.0.0.3
+// @version      2.1.0
 // @description  Add VIP features to SBB site
 // @license      AGPL-3.0-or-later
-// @copyright    2022 Thomas Nguyen
 // @author       Maxhyt
 // @updateURL    https://raw.githubusercontent.com/ducng99/SBBCoolHelper/master/SBBCoolHelper.user.js
 // @downloadURL  https://raw.githubusercontent.com/ducng99/SBBCoolHelper/master/SBBCoolHelper.user.js
@@ -16,7 +15,7 @@
 // @grant        GM_addStyle
 // ==/UserScript==
 
-(function () {
+(function() {
     'use strict';
 
     // Extensions
@@ -25,7 +24,7 @@
      * @param {string} elementInString string representation of an element
      * @return {Element} the new element appended
      */
-    Element.prototype.appendFromString = function (elementInString) {
+    Element.prototype.appendFromString = function(elementInString) {
         let tmpDOM = document.createElement('div');
         tmpDOM.innerHTML = elementInString;
         return this.appendChild(tmpDOM.firstChild);
@@ -72,9 +71,11 @@ div.disabled {
         Undo: 20
     };
 
-    const CATEGORIES = ['sponsor', 'selfpromo', 'interaction', 'intro', 'outro', 'preview', 'music_offtopic', 'filler', 'poi_highlight', 'exclusive_access'];
-    const CATEGORIES_NAMES = ['Sponsor', 'Unpaid/Self promotion', 'Interaction reminder', 'Intermission/Intro animation', 'Endcards/Credits', 'Preview/Recap', 'Music: Non-music', 'Filler Tangent/Jokes', 'Highlight', 'Exclusive Access'];
-    const ACTION_TYPES = ['skip', 'mute', 'full'];
+    const CATEGORIES = { 'sponsor': 'Sponsor', 'selfpromo': 'Unpaid/Self promotion', 'interaction': 'Interaction reminder', 'intro': 'Intermission/Intro animation', 'outro': 'Endcards/Credits', 'preview': 'Preview/Recap/Hook', 'music_offtopic': 'Music: Non-music', 'filler': 'Filler Tangent', 'poi_highlight': 'Highlight', 'exclusive_access': 'Exclusive Access', 'chapter': 'Chapter' };
+    const CATEGORIES_VALUES = Object.keys(CATEGORIES);
+
+    const ACTION_TYPES = { 'skip': 'Skip', 'mute': 'Mute', 'full': 'Full video', 'poi': 'Point of interest', 'chapter': 'Chapter' };
+    const ACTION_TYPES_VALUES = Object.keys(ACTION_TYPES);
 
     const STORAGE_VARS = { PrivateUserID: 'userID', PublicUserID: 'publicUserID', Username: 'username', IsVIP: 'isVIP' };
 
@@ -108,6 +109,7 @@ div.disabled {
         }
     });
 
+    // If private ID is stored, get other user info associated with it if not already stored
     if (VerifyPrivateUserID(GM_getValue(STORAGE_VARS.PrivateUserID))) {
         let publicUserID = GM_getValue(STORAGE_VARS.PublicUserID);
         let username = GM_getValue(STORAGE_VARS.Username);
@@ -174,7 +176,6 @@ div.disabled {
 
         // Add buttons to each segments in table
         tableRows.forEach(row => {
-            if (row.querySelector(".voteButton")) return; // skip row if voting buttons exist
             AddVotingButtonsToRow(row);
             AddCategoryChangeButtonToRow(row);
         });
@@ -195,30 +196,33 @@ div.disabled {
 
             if (videoID) {
                 const navbarContainer = DarkModeButton.parentNode;
-                if (navbarContainer.querySelector(".categoryLockButton")) return; // skip if button exists
 
                 // Category lock button
-                const categoryLockButton = document.createElement('button');
-                categoryLockButton.classList.add('btn', 'btn-warning', 'me-2', 'categoryLockButton');
-                categoryLockButton.append('🔒 Lock categories');
-                categoryLockButton.addEventListener('click', () => ShowLockCategoriesModal(videoID));
+                if (!navbarContainer.querySelector(".categoryLockButton")) {
+                    const categoryLockButton = document.createElement('button');
+                    categoryLockButton.classList.add('btn', 'btn-warning', 'me-2', 'categoryLockButton');
+                    categoryLockButton.append('🔒 Lock categories');
+                    categoryLockButton.addEventListener('click', () => ShowLockCategoriesModal(videoID));
 
-                navbarContainer.insertBefore(categoryLockButton, DarkModeButton);
+                    navbarContainer.insertBefore(categoryLockButton, DarkModeButton);
+                }
 
                 // Purge segments button
-                const purgeSegmentsButton = document.createElement('button');
-                purgeSegmentsButton.classList.add('btn', 'btn-danger', 'me-2', 'purgeSegmentsButton');
-                purgeSegmentsButton.append('🗑 Purge segments');
-                purgeSegmentsButton.addEventListener('click', () => {
-                    const [_, acceptButton] = ShowConfirmModal('Purge segments', `Are you sure you want to purge all segments on ${videoID}?`, () => {
-                        SendPurgeSegments(videoID);
+                if (!navbarContainer.querySelector(".purgeSegmentsButton")) {
+                    const purgeSegmentsButton = document.createElement('button');
+                    purgeSegmentsButton.classList.add('btn', 'btn-danger', 'me-2', 'purgeSegmentsButton');
+                    purgeSegmentsButton.append('🗑 Purge segments');
+                    purgeSegmentsButton.addEventListener('click', () => {
+                        const [_, acceptButton] = ShowConfirmModal('Purge segments', `Are you sure you want to purge all segments on ${videoID}?`, () => {
+                            SendPurgeSegments(videoID);
+                        });
+
+                        acceptButton.classList.remove('btn-primary');
+                        acceptButton.classList.add('btn-danger');
                     });
 
-                    acceptButton.classList.remove('btn-primary');
-                    acceptButton.classList.add('btn-danger');
-                });
-
-                navbarContainer.insertBefore(purgeSegmentsButton, DarkModeButton);
+                    navbarContainer.insertBefore(purgeSegmentsButton, DarkModeButton);
+                }
             }
         }
     }
@@ -228,95 +232,97 @@ div.disabled {
      * @param {Element} row 
      */
     function AddVotingButtonsToRow(row) {
-        const votingContainer = row.children[VoteHeaderIndex].appendFromString('<div></div>');
+        if (!row.children[VoteHeaderIndex].querySelector('.voteButtonsContainer')) {
+            const votingContainer = row.children[VoteHeaderIndex].appendFromString('<div class="voteButtonsContainer"></div>');
 
-        // Upvote button
-        const upvoteButton = votingContainer.appendFromString(`<div class="voteButton" title="Upvote this segment">${THUMBS_UP_ICON}</div>`);
-        upvoteButton.addEventListener('click', () => {
-            if (!upvoteButton.classList.contains('disabled') && confirm('Confirm upvoting?')) {
-                const segmentId = row.querySelector('textarea[name="UUID"]')?.value;
-                DisableVoteButtons();
-                upvoteButton.classList.add('loading');
+            // Upvote button
+            const upvoteButton = votingContainer.appendFromString(`<div class="voteButton" title="Upvote this segment">${THUMBS_UP_ICON}</div>`);
+            upvoteButton.addEventListener('click', () => {
+                if (!upvoteButton.classList.contains('disabled') && confirm('Confirm upvoting?')) {
+                    const segmentId = row.querySelector('textarea[name="UUID"]')?.value;
+                    DisableVoteButtons();
+                    upvoteButton.classList.add('loading');
 
-                SendVoteSegment(segmentId, VOTE_SEG_OPTIONS.Up, () => {
-                    EnableVoteButtons();
-                    upvoteButton.classList.remove('loading');
-                    upvoteButton.style.color = 'green';
-                    downvoteButton.style.color = '';
-                }, () => {
-                    EnableVoteButtons();
-                    upvoteButton.classList.remove('loading');
-                });
-            }
-        });
+                    SendVoteSegment(segmentId, VOTE_SEG_OPTIONS.Up, () => {
+                        EnableVoteButtons();
+                        upvoteButton.classList.remove('loading');
+                        upvoteButton.style.color = 'green';
+                        downvoteButton.style.color = '';
+                    }, () => {
+                        EnableVoteButtons();
+                        upvoteButton.classList.remove('loading');
+                    });
+                }
+            });
 
-        // Downvote button
-        const downvoteButton = votingContainer.appendFromString(`<div class="voteButton">${THUMBS_DOWN_ICON}</div>`);
+            // Downvote button
+            const downvoteButton = votingContainer.appendFromString(`<div class="voteButton">${THUMBS_DOWN_ICON}</div>`);
 
-        if (row.children[VoteHeaderIndex].textContent.includes('🔒')) {
-            if (GM_getValue(STORAGE_VARS.IsVIP)) {
-                downvoteButton.setAttribute('title', 'This segment is locked by a VIP, be sure to discuss first before downvoting this segment');
-                downvoteButton.style.color = '#ffc83d';
+            if (row.children[VoteHeaderIndex].textContent.includes('🔒')) {
+                if (GM_getValue(STORAGE_VARS.IsVIP)) {
+                    downvoteButton.setAttribute('title', 'This segment is locked by a VIP, be sure to discuss first before downvoting this segment');
+                    downvoteButton.style.color = '#ffc83d';
+                }
+                else {
+                    downvoteButton.setAttribute('title', 'This segment is locked by a VIP');
+                    downvoteButton.classList.add('disabled');
+                }
             }
             else {
-                downvoteButton.setAttribute('title', 'This segment is locked by a VIP');
+                downvoteButton.setAttribute('title', 'Downvote this segment');
+            }
+
+            downvoteButton.addEventListener('click', () => {
+                if (!downvoteButton.classList.contains('disabled') && confirm('Confirm downvoting?')) {
+                    const segmentId = row.querySelector('textarea[name="UUID"]')?.value;
+                    DisableVoteButtons();
+                    downvoteButton.classList.add('loading');
+
+                    SendVoteSegment(segmentId, VOTE_SEG_OPTIONS.Down, () => {
+                        EnableVoteButtons();
+                        upvoteButton.style.color = '';
+                        downvoteButton.classList.remove('loading');
+                        downvoteButton.style.color = 'red';
+                    }, () => {
+                        EnableVoteButtons();
+                        downvoteButton.classList.remove('loading');
+                    });
+                }
+            });
+
+            // Undo vote button
+            const undovoteButton = votingContainer.appendFromString(`<div class="voteButton" title="Undo vote on this segment">${ROTATE_LEFT_ICON}</div>`);
+            undovoteButton.addEventListener('click', () => {
+                if (!undovoteButton.classList.contains('disabled') && confirm('Confirm undo vote?')) {
+                    const segmentId = row.querySelector('textarea[name="UUID"]')?.value;
+                    DisableVoteButtons();
+                    undovoteButton.classList.add('loading');
+
+                    SendVoteSegment(segmentId, VOTE_SEG_OPTIONS.Undo, () => {
+                        EnableVoteButtons();
+                        upvoteButton.style.color = '';
+                        downvoteButton.style.color = '';
+                        undovoteButton.classList.remove('loading');
+                    }, () => {
+                        EnableVoteButtons();
+                        undovoteButton.classList.remove('loading');
+                    });
+                }
+            });
+
+            row.children[VoteHeaderIndex].style.minWidth = '6.7em'; // Make room for voting buttons
+
+            function DisableVoteButtons() {
+                upvoteButton.classList.add('disabled');
                 downvoteButton.classList.add('disabled');
+                undovoteButton.classList.add('disabled');
             }
-        }
-        else {
-            downvoteButton.setAttribute('title', 'Downvote this segment');
-        }
 
-        downvoteButton.addEventListener('click', () => {
-            if (!downvoteButton.classList.contains('disabled') && confirm('Confirm downvoting?')) {
-                const segmentId = row.querySelector('textarea[name="UUID"]')?.value;
-                DisableVoteButtons();
-                downvoteButton.classList.add('loading');
-
-                SendVoteSegment(segmentId, VOTE_SEG_OPTIONS.Down, () => {
-                    EnableVoteButtons();
-                    upvoteButton.style.color = '';
-                    downvoteButton.classList.remove('loading');
-                    downvoteButton.style.color = 'red';
-                }, () => {
-                    EnableVoteButtons();
-                    downvoteButton.classList.remove('loading');
-                });
+            function EnableVoteButtons() {
+                upvoteButton.classList.remove('disabled');
+                downvoteButton.classList.remove('disabled');
+                undovoteButton.classList.remove('disabled');
             }
-        });
-
-        // Undo vote button
-        const undovoteButton = votingContainer.appendFromString(`<div class="voteButton" title="Undo vote on this segment">${ROTATE_LEFT_ICON}</div>`);
-        undovoteButton.addEventListener('click', () => {
-            if (!undovoteButton.classList.contains('disabled') && confirm('Confirm undo vote?')) {
-                const segmentId = row.querySelector('textarea[name="UUID"]')?.value;
-                DisableVoteButtons();
-                undovoteButton.classList.add('loading');
-
-                SendVoteSegment(segmentId, VOTE_SEG_OPTIONS.Undo, () => {
-                    EnableVoteButtons();
-                    upvoteButton.style.color = '';
-                    downvoteButton.style.color = '';
-                    undovoteButton.classList.remove('loading');
-                }, () => {
-                    EnableVoteButtons();
-                    undovoteButton.classList.remove('loading');
-                });
-            }
-        });
-
-        row.children[VoteHeaderIndex].style.minWidth = '6.7em'; // Make room for voting buttons
-
-        function DisableVoteButtons() {
-            upvoteButton.classList.add('disabled');
-            downvoteButton.classList.add('disabled');
-            undovoteButton.classList.add('disabled');
-        }
-
-        function EnableVoteButtons() {
-            upvoteButton.classList.remove('disabled');
-            downvoteButton.classList.remove('disabled');
-            undovoteButton.classList.remove('disabled');
         }
     }
 
@@ -325,15 +331,15 @@ div.disabled {
      * @param {HTMLElement} row 
      */
     function AddCategoryChangeButtonToRow(row) {
-        if (GM_getValue(STORAGE_VARS.IsVIP) || row.querySelector('textarea[name="UserID"]')?.value === GM_getValue(STORAGE_VARS.PublicUserID)) {
+        if (!row.children[CategoryHeaderIndex].querySelector('.changeSegmentBtn') && (GM_getValue(STORAGE_VARS.IsVIP) || row.querySelector('textarea[name="UserID"]')?.value === GM_getValue(STORAGE_VARS.PublicUserID))) {
             row.children[CategoryHeaderIndex].appendChild(document.createElement('br'));
 
-            const categoryChangeButton = row.children[CategoryHeaderIndex].appendFromString('<button class="btn btn-secondary btn-sm mt-1" title="Change this segment\'s category">✏</button>');
+            const categoryChangeButton = row.children[CategoryHeaderIndex].appendFromString('<button class="changeSegmentBtn btn btn-secondary btn-sm mt-1" title="Change this segment\'s category">✏</button>');
             categoryChangeButton.addEventListener('click', () => {
                 categoryChangeButton.classList.add('disabled');
 
                 const segmentId = row.querySelector('textarea[name="UUID"]')?.value;
-                const category = CATEGORIES.find(c => row.children[CategoryHeaderIndex].textContent.includes(c));
+                const category = CATEGORIES_VALUES.find(c => row.children[CategoryHeaderIndex].textContent.toLowerCase().includes(c));
 
                 ShowCategoryChangeModal(segmentId, category, () => {
                     categoryChangeButton.classList.remove('disabled');
@@ -346,7 +352,7 @@ div.disabled {
      * Show a modal with a list of categories to choose from and a button to save the category
      * @param {string} segmentId UUID of the segment
      * @param {string} category current category of the segment
-     * @param {() => any|undefined} onClosed function to call when the modal is closed
+     * @param {() => void|undefined} onClosed function to call when the modal is closed
      */
     function ShowCategoryChangeModal(segmentId, category, onClosed) {
         // Create a modal
@@ -358,8 +364,8 @@ div.disabled {
 
         const categorySelect = modal.Body.appendFromString('<select id="modal_select_category" class="form-select mt-2"></select>');
 
-        CATEGORIES.forEach((cat, i) => {
-            const option = categorySelect.appendFromString(`<option value=${cat}>${CATEGORIES_NAMES[i]}</option>`);
+        CATEGORIES_VALUES.forEach(cat => {
+            const option = categorySelect.appendFromString(`<option value=${cat}>${CATEGORIES[cat]}</option>`);
 
             if (category === cat) {
                 option.selected = true;
@@ -387,7 +393,7 @@ div.disabled {
     /**
      * Show a modal to lock categories of a video
      * @param {string} videoID 
-     * @param {() => any|undefined} onClosed function to call when the modal is closed
+     * @param {() => void|undefined} onClosed function to call when the modal is closed
      */
     function ShowLockCategoriesModal(videoID, onClosed) {
         // Create a modal
@@ -408,7 +414,7 @@ div.disabled {
             }
             else {
                 checkboxes.forEach(checkbox => {
-                    if (!['filler', 'poi_highlight', 'exclusive_access'].includes(checkbox.value)) {
+                    if (!['filler', 'poi_highlight', 'exclusive_access', 'chapter'].includes(checkbox.value)) {
                         checkbox.checked = true;
                     }
                 });
@@ -419,18 +425,36 @@ div.disabled {
         const categoriesContainerLeftCol = categoriesContainer.appendFromString('<div class="col-12 col-sm-6"></div>');
         const categoriesContainerRightCol = categoriesContainer.appendFromString('<div class="col-12 col-sm-6"></div>');
 
-        CATEGORIES.forEach((cat, i) => {
+        CATEGORIES_VALUES.forEach((cat, i) => {
             const box = document.createElement('div');
             box.classList.add('form-check');
 
-            box.appendFromString(`<input class="form-check-input" type="checkbox" id="modal_checkbox_category_${cat}" value="${cat}">`);
-            box.appendFromString(`<label class="form-check-label" for="modal_checkbox_category_${cat}">${CATEGORIES_NAMES[i]}</label>`);
+            const checkbox = box.appendFromString(`<input class="form-check-input" type="checkbox" id="modal_checkbox_category_${cat}" value="${cat}" />`);
+            box.appendFromString(`<label class="form-check-label" for="modal_checkbox_category_${cat}">${CATEGORIES[cat]}</label>`);
 
-            if (i < CATEGORIES.length / 2) {
+            if (i < CATEGORIES_VALUES.length / 2) {
                 categoriesContainerLeftCol.appendChild(box);
             }
             else {
                 categoriesContainerRightCol.appendChild(box);
+            }
+
+            if (cat === 'chapter') {
+                checkbox.addEventListener('change', () => {
+                    const chapter_type_checkbox = modal.Body.querySelector('#modal_checkbox_type_chapter')
+
+                    if (chapter_type_checkbox) {
+                        chapter_type_checkbox.checked = checkbox.checked;
+                    }
+                });
+            } else if (cat === 'poi_highlight') {
+                checkbox.addEventListener('change', () => {
+                    const poi_type_checkbox = modal.Body.querySelector('#modal_checkbox_type_poi')
+
+                    if (poi_type_checkbox) {
+                        poi_type_checkbox.checked = checkbox.checked;
+                    }
+                });
             }
         });
 
@@ -438,13 +462,19 @@ div.disabled {
         modal.Body.appendFromString('<h5 class="mt-3">Choose action types:</h5>');
 
         const actionTypesContainer = modal.Body.appendFromString('<div id="modal_action_types_container"></div>');
-        ACTION_TYPES.forEach(type => {
+        ACTION_TYPES_VALUES.forEach(type => {
             const box = actionTypesContainer.appendFromString('<div class="form-check"></div>');
 
-            box.appendFromString(`<input class="form-check-input" type="checkbox" id="modal_checkbox_type_${type}" value="${type}" checked/>`);
-            box.appendFromString(`<label class="form-check-label" for="modal_checkbox_type_${type}">${type}</label>`);
+            const checkbox = box.appendFromString(`<input class="form-check-input" type="checkbox" id="modal_checkbox_type_${type}" value="${type}" checked />`);
+            box.appendFromString(`<label class="form-check-label" for="modal_checkbox_type_${type}">${ACTION_TYPES[type]}</label>`);
 
             actionTypesContainer.appendChild(box);
+
+            if (type === 'chapter' || type === 'poi') {
+                checkbox.disabled = true;
+                checkbox.classList.add('disabled');
+                checkbox.checked = false;
+            }
         });
 
         // Add reason to modal
@@ -499,8 +529,8 @@ div.disabled {
      * Show a confirmation modal
      * @param {string} title modal's title
      * @param {string} message modal's message
-     * @param {() => any|undefined} onAccept function to be called when user press Yes button
-     * @param {() => any|undefined} onDecline function to be called when user press No button
+     * @param {() => void|undefined} onAccept function to be called when user press Yes button
+     * @param {() => void|undefined} onDecline function to be called when user press No button
      * @returns {[Modal, HTMLButtonElement, HTMLButtonElement]} the modal instance, accept and decline buttons
      */
     function ShowConfirmModal(title, message, onAccept, onDecline) {
@@ -632,8 +662,8 @@ div.disabled {
      * Send request to API for voting on segments
      * @param {string} uuid
      * @param {VOTE_SEG_OPTIONS} voteID
-     * @param {() => any|undefined} onSuccess function to call when the request is successful
-     * @param {() => any|undefined} onError function to call when the request returns an error or there is an error with input
+     * @param {() => void|undefined} onSuccess function to call when the request is successful
+     * @param {() => void|undefined} onError function to call when the request returns an error or there is an error with input
     */
     function SendVoteSegment(uuid, voteID, onSuccess, onError) {
         const userID = GM_getValue(STORAGE_VARS.PrivateUserID);
@@ -658,7 +688,8 @@ div.disabled {
                 method: 'POST',
                 url: `https://sponsor.ajay.app/api/voteOnSponsorTime?UUID=${uuid}&userID=${userID}&type=${voteID}`,
                 responseType: 'json',
-                onload: function (response) {
+                timeout: 5000,
+                onload: function(response) {
                     switch (response.status) {
                         case 403:
                             ShowToast('Vote is rejected\n\n' + response.response.message, TOAST_TYPE.Danger);
@@ -681,7 +712,7 @@ div.disabled {
                             break;
                     }
                 },
-                onerror: function () {
+                onerror: function() {
                     ShowToast('Failed to send the request, something might be wrong with the server or your internet is 💩.', TOAST_TYPE.Warning);
                     if (onError) onError();
                 }
@@ -693,8 +724,8 @@ div.disabled {
      * Update category of a segment
      * @param {string} uuid segment UUID
      * @param {string} category the new category of the segment
-     * @param {() => any|undefined} onSuccess function to call when the request is successful
-     * @param {() => any|undefined} onError function to call when the request returns an error or there is an error with input
+     * @param {() => void|undefined} onSuccess function to call when the request is successful
+     * @param {() => void|undefined} onError function to call when the request returns an error or there is an error with input
      */
     function SendCategoryUpdate(uuid, category, onSuccess, onError) {
         const userID = GM_getValue(STORAGE_VARS.PrivateUserID);
@@ -704,7 +735,7 @@ div.disabled {
 
             if (onError) onError();
         }
-        else if (CATEGORIES.indexOf(category) === -1) {
+        else if (!(category in CATEGORIES)) {
             ShowToast(`Invalid category name: "${category}"`, TOAST_TYPE.Warning);
 
             if (onError) onError();
@@ -719,7 +750,8 @@ div.disabled {
                 method: 'POST',
                 url: `https://sponsor.ajay.app/api/voteOnSponsorTime?UUID=${uuid}&userID=${userID}&category=${category}`,
                 responseType: 'json',
-                onload: function (response) {
+                timeout: 5000,
+                onload: function(response) {
                     switch (response.status) {
                         case 403:
                             ShowToast('Update is rejected\n\n' + response.response.message, TOAST_TYPE.Danger);
@@ -742,7 +774,7 @@ div.disabled {
                             break;
                     }
                 },
-                onerror: function () {
+                onerror: function() {
                     ShowToast('Failed to send the request, something might be wrong with the server or your internet is 💩.', TOAST_TYPE.Warning);
                     if (onError) onError();
                 }
@@ -756,13 +788,13 @@ div.disabled {
      * @param {string[]} categories an array of categories being locked
      * @param {string[]} actionTypes an array of action types being locked
      * @param {string} reason why these categories are locked
-     * @param {() => any|undefined} onSuccess function to call when the request is successful
-     * @param {() => any|undefined} onError function to call when the request returns an error or there is an error with input
+     * @param {() => void|undefined} onSuccess function to call when the request is successful
+     * @param {() => void|undefined} onError function to call when the request returns an error or there is an error with input
      */
     function SendLockCategories(videoID, categories, actionTypes, reason, onSuccess, onError) {
         const userID = GM_getValue(STORAGE_VARS.PrivateUserID);
-        const invalidCategories = categories.filter(c => CATEGORIES.indexOf(c) === -1);
-        const invalidActionTypes = actionTypes.filter(t => ACTION_TYPES.indexOf(t) === -1);
+        const invalidCategories = categories.filter(c => !(c in CATEGORIES));
+        const invalidActionTypes = actionTypes.filter(t => !(t in ACTION_TYPES));
 
         if (!VerifyPrivateUserID(userID)) {
             ShowToast(`Invalid user ID: "${userID}"`, TOAST_TYPE.Warning);
@@ -785,7 +817,8 @@ div.disabled {
                 url: 'https://sponsor.ajay.app/api/lockCategories',
                 data: JSON.stringify({ videoID, userID, categories, actionTypes, reason }),
                 headers: { 'Content-Type': 'application/json' },
-                onload: function (response) {
+                timeout: 5000,
+                onload: function(response) {
                     switch (response.status) {
                         case 400:
                             ShowToast('Failed to lock categories. Please check these info and your User ID\n\n' +
@@ -810,7 +843,7 @@ div.disabled {
                             break;
                     }
                 },
-                onerror: function () {
+                onerror: function() {
                     ShowToast('Failed to send the request, something might be wrong with the server or your internet is 💩.', TOAST_TYPE.Warning);
                     if (onError) onError();
                 }
@@ -823,13 +856,13 @@ div.disabled {
      * @param {string} videoID 
      * @param {string[]} categories an array of categories being locked
      * @param {string[]} actionTypes an array of action types being locked
-     * @param {() => any|undefined} onSuccess function to call when the request is successful
-     * @param {() => any|undefined} onError function to call when the request returns an error or there is an error with input
+     * @param {() => void|undefined} onSuccess function to call when the request is successful
+     * @param {() => void|undefined} onError function to call when the request returns an error or there is an error with input
      */
     function SendUnlockCategories(videoID, categories, actionTypes, onSuccess, onError) {
         const userID = GM_getValue(STORAGE_VARS.PrivateUserID);
-        const invalidCategories = categories.filter(c => CATEGORIES.indexOf(c) === -1);
-        const invalidActionTypes = actionTypes.filter(t => ACTION_TYPES.indexOf(t) === -1);
+        const invalidCategories = categories.filter(c => !(c in CATEGORIES));
+        const invalidActionTypes = actionTypes.filter(t => !(t in ACTION_TYPES));
 
         if (!VerifyPrivateUserID(userID)) {
             ShowToast(`Invalid user ID: "${userID}"`, TOAST_TYPE.Warning);
@@ -853,7 +886,8 @@ div.disabled {
                 data: JSON.stringify({ videoID, userID, categories, actionTypes }),
                 headers: { 'Content-Type': 'application/json' },
                 responseType: 'json',
-                onload: function (response) {
+                timeout: 5000,
+                onload: function(response) {
                     switch (response.status) {
                         case 400:
                             ShowToast('Failed to unlock categories. Please check these info and your User ID\n\n' +
@@ -877,7 +911,7 @@ div.disabled {
                             break;
                     }
                 },
-                onerror: function () {
+                onerror: function() {
                     ShowToast('Failed to send the request, something might be wrong with the server or your internet is 💩.', TOAST_TYPE.Warning);
                     if (onError) onError();
                 }
@@ -888,8 +922,8 @@ div.disabled {
     /**
      * Send request to remove all segments on a video
      * @param {string} videoID 
-     * @param {() => any|undefined} onSuccess function to call when the request is successful
-     * @param {() => any|undefined} onError function to call when the request returns an error or there is an error with input
+     * @param {() => void|undefined} onSuccess function to call when the request is successful
+     * @param {() => void|undefined} onError function to call when the request returns an error or there is an error with input
      */
     function SendPurgeSegments(videoID, onSuccess, onError) {
         const userID = GM_getValue(STORAGE_VARS.PrivateUserID);
@@ -905,7 +939,8 @@ div.disabled {
                 url: 'https://sponsor.ajay.app/api/purgeAllSegments',
                 data: JSON.stringify({ videoID, userID }),
                 headers: { 'Content-Type': 'application/json' },
-                onload: function (response) {
+                timeout: 5000,
+                onload: function(response) {
                     switch (response.status) {
                         case 400:
                             ShowToast('Failed to purge segments. Please check these info and your User ID\n\n' +
@@ -927,7 +962,7 @@ div.disabled {
                             break;
                     }
                 },
-                onerror: function () {
+                onerror: function() {
                     ShowToast('Failed to send the request, something might be wrong with the server or your internet is 💩.', TOAST_TYPE.Warning);
                     if (onError) onError();
                 }
@@ -952,7 +987,8 @@ div.disabled {
                 method: 'GET',
                 url: `https://sponsor.ajay.app/api/userInfo?userID=${userID}&values=["userID","userName","vip"]`,
                 responseType: 'json',
-                onload: function (response) {
+                timeout: 5000,
+                onload: function(response) {
                     switch (response.status) {
                         case 400:
                             ShowToast('Failed to get user info. Please check your User ID', TOAST_TYPE.Danger);
@@ -970,7 +1006,7 @@ div.disabled {
                             break;
                     }
                 },
-                onerror: function () {
+                onerror: function() {
                     ShowToast('Failed to send the request, something might be wrong with the server or your internet is 💩.', TOAST_TYPE.Warning);
                     if (onError) onError();
                 }
