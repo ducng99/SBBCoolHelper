@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         SBB Cool Helper
 // @namespace    maxhyt.SBBCoolHelper
-// @version      2.1.0
+// @version      2.2.0
 // @description  Add VIP features to SBB site
 // @license      AGPL-3.0-or-later
 // @author       Maxhyt
@@ -71,7 +71,7 @@ div.disabled {
         Undo: 20
     };
 
-    const CATEGORIES = { 'sponsor': 'Sponsor', 'selfpromo': 'Unpaid/Self promotion', 'interaction': 'Interaction reminder', 'intro': 'Intermission/Intro animation', 'outro': 'Endcards/Credits', 'preview': 'Preview/Recap/Hook', 'music_offtopic': 'Music: Non-music', 'filler': 'Filler Tangent', 'poi_highlight': 'Highlight', 'exclusive_access': 'Exclusive Access', 'chapter': 'Chapter' };
+    const CATEGORIES = { 'sponsor': 'Sponsor', 'selfpromo': 'Unpaid/Self promotion', 'interaction': 'Interaction reminder', 'intro': 'Intermission/Intro animation', 'outro': 'Endcards/Credits', 'preview': 'Preview/Recap', 'hook': 'Hook/Greetings', 'music_offtopic': 'Music: Non-music', 'filler': 'Filler Tangent', 'poi_highlight': 'Highlight', 'exclusive_access': 'Exclusive Access', 'chapter': 'Chapter' };
     const CATEGORIES_VALUES = Object.keys(CATEGORIES);
 
     const ACTION_TYPES = { 'skip': 'Skip', 'mute': 'Mute', 'full': 'Full video', 'poi': 'Point of interest', 'chapter': 'Chapter' };
