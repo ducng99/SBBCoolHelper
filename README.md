@@ -2,6 +2,8 @@
 
 A small script to add additional functionalities to SBB for cool people 😎 (a.k.a VIPs) and also awesome ~~normal~~ people 😁
 
+For VIPs to use until SBB finishes the built-in features.
+
 ## Features
 
 ### All users
@@ -23,11 +25,11 @@ A small script to add additional functionalities to SBB for cool people 😎 (a.
 
 ## Show off
 
-![Screenshot 2022-02-05 100415](https://user-images.githubusercontent.com/49080794/152603086-d4e66d2f-f62c-4478-8f5f-02bfa6d10efb.png)
+<img width="642" height="172" alt="image" src="https://github.com/user-attachments/assets/617f96f7-e8a5-4314-b316-7ec83ae26037" />
 
-![Screenshot 2022-02-05 100335](https://user-images.githubusercontent.com/49080794/152603084-ff093ff5-633d-4886-b82a-7b73605a1bde.png)
+<img width="652" height="878" alt="image" src="https://github.com/user-attachments/assets/1fdcd36a-d8bf-4809-acf1-095f5aa33140" />
 
-![Screenshot 2022-02-05 100608](https://user-images.githubusercontent.com/49080794/152603087-c18a3a1b-e277-4528-a547-c3eb2a30491d.png)
+<img width="567" height="674" alt="image" src="https://github.com/user-attachments/assets/6229b820-df2e-4de2-8295-1e24bc293380" />
 
 ## About
 
